@@ -1,3 +1,9 @@
+---
+layout: page
+title: IoT Stream Processing
+permalink: /iot/
+---
+
 ## Plan: GPU-akcelerowany system przetwarzania danych strumieniowych (Real-time Stream Processing)
 
 **TL;DR**: Budowa end-to-end systemu do analizy strumieni danych (logi sieciowe / IoT) w czasie rzeczywistym z GPU offloadingiem. Pipeline: **Kafka → Python ingestion → C++ batcher z CUDA Streams (pinned memory, async transfer) → CUDA kernele (filtrowanie, rolling stats, detekcja anomalii) → Python dashboard na żywo**. Rok czasu pozwala zbudować to solidnie — z prawdziwą detekcją anomalii, benchmarkami CPU vs GPU, i produkcyjnym monitoringiem.
