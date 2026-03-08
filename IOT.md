@@ -1,7 +1,7 @@
 ---
 layout: page
 title: IoT Stream Processing
-permalink: /iot/
+permalink: /IOT/
 ---
 
 ## Plan: GPU-akcelerowany system przetwarzania danych strumieniowych (Real-time Stream Processing)
