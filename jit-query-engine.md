@@ -1,3 +1,9 @@
+---
+layout: page
+title: JIT Query Engine
+permalink: /jit-query-engine/
+---
+
 ## Plan: GPU-akcelerowany JIT Query Engine na dane tabelaryczne
 
 **TL;DR**: Budowa od zera silnika analitycznego, który przyjmuje zapytania DataFrame/SQL-like, kompiluje je w runtime (NVRTC) do zoptymalizowanych **fused kerneli CUDA** (eliminując materializację pośrednią), i wykonuje na GPU. Trzy domeny w jednym: **GPU programming + bazy danych + kompilatory**. Rok czasu pozwala zrobić to solidnie — z operator fusion, cost-based plannerem, i realnym porównaniem z cuDF/DuckDB/Polars.

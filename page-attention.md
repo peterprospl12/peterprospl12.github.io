@@ -1,3 +1,9 @@
+---
+layout: page
+title: PagedAttention LLM Engine
+permalink: /page-attention/
+---
+
 ## Plan: GPU-akcelerowany silnik inferencji LLM z PagedAttention i ciągłym batchowaniem
 
 **TL;DR**: Budowa od zera silnika serwowania LLM w CUDA C++ i Pythonie, implementującego dwie kluczowe innowacje: **PagedAttention** (wirtualizacja pamięci KV-cache) i **continuous batching** (dynamiczne zarządzanie requestami). Działający prototyp obsługujący GPT-2 → Llama-2-7B, z OpenAI-compatible API.

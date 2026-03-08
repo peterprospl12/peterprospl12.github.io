@@ -1,0 +1,11 @@
+title: Projekty GPU
+description: GPU-akcelerowane projekty inżynierskie
+theme: minima
+
+header_pages:
+  - IOT.md
+  - jit-query-engine.md
+  - page-attention.md
+
+minima:
+  skin: classic
