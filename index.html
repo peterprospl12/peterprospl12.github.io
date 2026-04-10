@@ -1,35 +1,33 @@
 <!DOCTYPE html>
-<html lang="pl">
+<html lang="en">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Instrukcja Nagrań Oddechu | Breathing Survey Instructions</title>
+    <title>Browser Breathing Recorder</title>
     <meta name="description"
-        content="Dwujęzyczna instrukcja PL/EN dla badania audio z nagraniami oddechu do treningu i ewaluacji modeli AI.">
+        content="Record breathing audio directly in the browser, label inhale and exhale phases, and download a ZIP package for the study.">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link
-        href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=Newsreader:opsz,wght@6..72,500;6..72,700&display=swap"
+        href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=Fraunces:opsz,wght@9..144,600;9..144,700&display=swap"
         rel="stylesheet">
     <style>
         :root {
-            --bg: #f4efe7;
-            --bg-soft: #fbf8f3;
-            --ink: #172226;
-            --muted: #506067;
-            --line: rgba(23, 34, 38, 0.12);
-            --panel: rgba(255, 252, 247, 0.84);
-            --panel-strong: #fffaf3;
-            --teal: #0d8d88;
-            --teal-deep: #0b5f66;
-            --gold: #d99d2b;
-            --rose: #d46f5b;
-            --shadow: 0 24px 80px rgba(19, 36, 45, 0.12);
-            --radius-xl: 28px;
-            --radius-lg: 20px;
-            --radius-md: 14px;
-            --max-width: 1160px;
+            --bg: #efe7db;
+            --panel: rgba(255, 251, 245, 0.88);
+            --panel-strong: #fffaf2;
+            --ink: #13242d;
+            --muted: #5b6d75;
+            --teal: #0f8b8d;
+            --teal-deep: #0b6166;
+            --gold: #d59435;
+            --brick: #c7674e;
+            --shadow: 0 28px 70px rgba(19, 36, 45, 0.12);
+            --radius-xl: 30px;
+            --radius-lg: 22px;
+            --radius-md: 16px;
+            --max-width: 1180px;
         }
 
         * {
@@ -45,19 +43,14 @@
             font-family: "Space Grotesk", "Segoe UI", sans-serif;
             color: var(--ink);
             background:
-                radial-gradient(circle at top left, rgba(13, 141, 136, 0.14), transparent 32%),
-                radial-gradient(circle at top right, rgba(217, 157, 43, 0.18), transparent 28%),
-                linear-gradient(180deg, #f8f2e8 0%, #f4efe7 40%, #efe7dc 100%);
+                radial-gradient(circle at top left, rgba(15, 139, 141, 0.14), transparent 32%),
+                radial-gradient(circle at top right, rgba(213, 148, 53, 0.18), transparent 30%),
+                linear-gradient(180deg, #f5eee4 0%, #efe7db 44%, #e7ddd0 100%);
             line-height: 1.6;
         }
 
         a {
             color: inherit;
-        }
-
-        img {
-            max-width: 100%;
-            display: block;
         }
 
         .shell {
@@ -68,10 +61,10 @@
         .topbar {
             position: sticky;
             top: 0;
-            z-index: 20;
+            z-index: 30;
             backdrop-filter: blur(16px);
-            background: rgba(244, 239, 231, 0.72);
-            border-bottom: 1px solid rgba(23, 34, 38, 0.08);
+            background: rgba(245, 238, 228, 0.8);
+            border-bottom: 1px solid rgba(19, 36, 45, 0.08);
         }
 
         .topbar-inner {
@@ -79,7 +72,7 @@
             align-items: center;
             justify-content: space-between;
             gap: 16px;
-            min-height: 76px;
+            min-height: 78px;
         }
 
         .brand {
@@ -90,41 +83,52 @@
             letter-spacing: 0.02em;
         }
 
-        .brand-note {
-            display: inline-flex;
-            align-items: center;
-            padding: 6px 10px;
-            border-radius: 999px;
-            background: rgba(23, 34, 38, 0.06);
-            color: var(--teal-deep);
-            font-size: 0.76rem;
-            font-weight: 700;
-            letter-spacing: 0.06em;
-        }
-
         .brand-mark {
             width: 40px;
             height: 40px;
             border-radius: 50%;
             background:
-                radial-gradient(circle at 30% 30%, #fefefe, rgba(254, 254, 254, 0.2) 34%, transparent 35%),
-                linear-gradient(135deg, var(--teal) 0%, var(--teal-deep) 60%, #153a45 100%);
-            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.55);
+                radial-gradient(circle at 32% 32%, #fff, rgba(255, 255, 255, 0.2) 34%, transparent 35%),
+                linear-gradient(135deg, var(--teal) 0%, var(--teal-deep) 60%, #173c47 100%);
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.56);
+        }
+
+        .brand-note {
+            display: inline-flex;
+            align-items: center;
+            padding: 6px 10px;
+            border-radius: 999px;
+            background: rgba(19, 36, 45, 0.06);
+            color: var(--teal-deep);
+            font-size: 0.76rem;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+        }
+
+        .top-links,
+        .hero-actions,
+        .tag-row,
+        .recorder-actions,
+        .saved-links {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
         }
 
         .top-links {
-            display: flex;
             align-items: center;
-            gap: 12px;
-            flex-wrap: wrap;
         }
 
         .pill-link,
-        .cta {
+        .cta,
+        .ghost-link,
+        .ghost-btn,
+        .saved-link {
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            gap: 10px;
+            gap: 8px;
             padding: 12px 18px;
             border-radius: 999px;
             border: 1px solid transparent;
@@ -132,9 +136,12 @@
             transition: transform 180ms ease, box-shadow 180ms ease, background 180ms ease;
         }
 
-        .pill-link {
-            background: rgba(255, 250, 243, 0.75);
-            border-color: rgba(23, 34, 38, 0.08);
+        .pill-link,
+        .ghost-link,
+        .ghost-btn,
+        .saved-link {
+            background: rgba(255, 250, 242, 0.82);
+            border-color: rgba(19, 36, 45, 0.08);
             color: var(--ink);
             font-weight: 500;
         }
@@ -143,16 +150,21 @@
             background: linear-gradient(135deg, var(--teal) 0%, var(--teal-deep) 100%);
             color: white;
             font-weight: 700;
-            box-shadow: 0 12px 24px rgba(11, 95, 102, 0.24);
+            box-shadow: 0 14px 28px rgba(11, 97, 102, 0.22);
         }
 
         .cta.secondary {
-            background: linear-gradient(135deg, #d99d2b 0%, #c47a20 100%);
-            box-shadow: 0 12px 24px rgba(196, 122, 32, 0.22);
+            background: linear-gradient(135deg, var(--gold) 0%, #c27d1f 100%);
+            box-shadow: 0 14px 28px rgba(194, 125, 31, 0.22);
         }
 
         .pill-link:hover,
-        .cta:hover {
+        .cta:hover,
+        .ghost-link:hover,
+        .ghost-btn:hover,
+        .saved-link:hover,
+        .control-btn:hover,
+        .class-button:hover {
             transform: translateY(-1px);
         }
 
@@ -160,16 +172,24 @@
             padding: 36px 0 80px;
         }
 
+        section {
+            margin-top: 28px;
+        }
+
+        .hero,
+        .section-card {
+            border: 1px solid rgba(19, 36, 45, 0.08);
+            border-radius: var(--radius-xl);
+            box-shadow: var(--shadow);
+        }
+
         .hero {
             position: relative;
             overflow: hidden;
-            border: 1px solid rgba(23, 34, 38, 0.08);
-            border-radius: 36px;
             padding: 48px;
             background:
-                linear-gradient(135deg, rgba(255, 251, 245, 0.96), rgba(252, 246, 236, 0.86)),
-                linear-gradient(120deg, rgba(13, 141, 136, 0.16), rgba(217, 157, 43, 0.14));
-            box-shadow: var(--shadow);
+                linear-gradient(135deg, rgba(255, 251, 244, 0.96), rgba(250, 244, 234, 0.9)),
+                linear-gradient(125deg, rgba(15, 139, 141, 0.14), rgba(213, 148, 53, 0.12));
         }
 
         .hero::before,
@@ -178,23 +198,75 @@
             position: absolute;
             border-radius: 50%;
             pointer-events: none;
-            filter: blur(2px);
         }
 
         .hero::before {
             width: 320px;
             height: 320px;
-            right: -80px;
-            top: -80px;
-            background: radial-gradient(circle, rgba(13, 141, 136, 0.20) 0%, rgba(13, 141, 136, 0) 70%);
+            right: -96px;
+            top: -88px;
+            background: radial-gradient(circle, rgba(15, 139, 141, 0.18) 0%, rgba(15, 139, 141, 0) 72%);
         }
 
         .hero::after {
-            width: 240px;
-            height: 240px;
-            left: -60px;
-            bottom: -80px;
-            background: radial-gradient(circle, rgba(212, 111, 91, 0.20) 0%, rgba(212, 111, 91, 0) 70%);
+            width: 250px;
+            height: 250px;
+            left: -70px;
+            bottom: -90px;
+            background: radial-gradient(circle, rgba(199, 103, 78, 0.18) 0%, rgba(199, 103, 78, 0) 72%);
+        }
+
+        .hero-grid,
+        .cards,
+        .steps,
+        .faq-grid,
+        .submission-grid,
+        .recorder-layout,
+        .field-grid,
+        .preset-grid,
+        .stats-grid,
+        .class-grid,
+        .saved-list {
+            display: grid;
+            gap: 18px;
+        }
+
+        .hero-grid {
+            position: relative;
+            z-index: 1;
+            grid-template-columns: 1.25fr 0.95fr;
+            align-items: end;
+        }
+
+        .cards {
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+        }
+
+        .steps {
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+        }
+
+        .faq-grid,
+        .submission-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        .recorder-layout {
+            grid-template-columns: minmax(0, 0.94fr) minmax(0, 1.06fr);
+            align-items: start;
+        }
+
+        .field-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        .preset-grid,
+        .stats-grid {
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+        }
+
+        .class-grid {
+            grid-template-columns: repeat(3, minmax(0, 1fr));
         }
 
         .eyebrow {
@@ -203,11 +275,11 @@
             gap: 8px;
             padding: 8px 14px;
             border-radius: 999px;
-            background: rgba(23, 34, 38, 0.06);
+            background: rgba(19, 36, 45, 0.06);
             color: var(--teal-deep);
-            font-size: 0.92rem;
+            font-size: 0.88rem;
             font-weight: 700;
-            letter-spacing: 0.04em;
+            letter-spacing: 0.06em;
             text-transform: uppercase;
         }
 
@@ -220,56 +292,66 @@
 
         h1,
         h2 {
-            font-family: "Newsreader", Georgia, serif;
-            font-weight: 700;
+            font-family: "Fraunces", Georgia, serif;
             letter-spacing: -0.03em;
         }
 
         h1 {
-            margin-top: 20px;
-            font-size: clamp(2.8rem, 6vw, 5.4rem);
-            max-width: 10ch;
-        }
-
-        .hero-grid {
-            position: relative;
-            z-index: 1;
-            display: grid;
-            grid-template-columns: 1.3fr 0.9fr;
-            gap: 28px;
-            align-items: end;
-        }
-
-        .hero-copy p {
-            max-width: 64ch;
-            font-size: 1.08rem;
-            color: var(--muted);
-            margin: 20px 0 0;
+            margin-top: 18px;
+            font-size: clamp(2.8rem, 6vw, 5.2rem);
+            max-width: 11ch;
         }
 
         .headline-sub {
             display: block;
             margin-top: 14px;
-            font-family: "Space Grotesk", "Segoe UI", sans-serif;
-            font-size: clamp(1.12rem, 2.2vw, 1.72rem);
-            line-height: 1.2;
-            letter-spacing: -0.02em;
             color: var(--teal-deep);
+            font-size: clamp(1.1rem, 2.2vw, 1.64rem);
+            line-height: 1.2;
             font-weight: 700;
         }
 
-        .translation {
-            display: block;
-            margin-top: 8px;
+        .hero-copy p,
+        .section-head p,
+        .card p,
+        .panel p,
+        .faq p,
+        .step p,
+        .callout p,
+        .support-note,
+        .shortcut-note,
+        .field-hint,
+        .inline-note,
+        .saved-meta,
+        .mini-card p,
+        .preset-card p,
+        .metric span {
             color: var(--muted);
-            font-size: 0.96em;
+        }
+
+        .hero-copy p {
+            max-width: 64ch;
+            font-size: 1.06rem;
+            margin: 20px 0 0;
         }
 
         .hero-actions {
-            display: flex;
-            gap: 14px;
-            flex-wrap: wrap;
             margin-top: 28px;
+        }
+
+        .tag-row {
+            margin-top: 18px;
+        }
+
+        .tag {
+            display: inline-flex;
+            align-items: center;
+            padding: 9px 12px;
+            border-radius: 999px;
+            background: rgba(19, 36, 45, 0.06);
+            color: var(--ink);
+            font-size: 0.94rem;
+            font-weight: 500;
         }
 
         .hero-side {
@@ -277,62 +359,9 @@
             gap: 14px;
         }
 
-        .mini-card {
-            padding: 20px;
-            border-radius: var(--radius-lg);
-            background: rgba(255, 253, 249, 0.82);
-            border: 1px solid rgba(23, 34, 38, 0.08);
-            box-shadow: 0 12px 30px rgba(23, 34, 38, 0.08);
-        }
-
-        .mini-card strong {
-            display: block;
-            font-size: 1rem;
-            margin-bottom: 8px;
-        }
-
-        .mini-card p {
-            margin: 0;
-            color: var(--muted);
-            font-size: 0.98rem;
-        }
-
-        .notice-grid,
-        .cards,
-        .steps,
-        .upload-grid,
-        .faq-grid {
-            display: grid;
-            gap: 18px;
-        }
-
-        .notice-grid,
-        .upload-grid {
-            grid-template-columns: repeat(2, minmax(0, 1fr));
-        }
-
-        .cards {
-            grid-template-columns: repeat(3, minmax(0, 1fr));
-        }
-
-        .steps {
-            grid-template-columns: repeat(4, minmax(0, 1fr));
-        }
-
-        .faq-grid {
-            grid-template-columns: repeat(2, minmax(0, 1fr));
-        }
-
-        section {
-            margin-top: 26px;
-        }
-
         .section-card {
             padding: 32px;
-            border-radius: var(--radius-xl);
             background: var(--panel);
-            border: 1px solid rgba(23, 34, 38, 0.08);
-            box-shadow: 0 20px 60px rgba(23, 34, 38, 0.08);
             backdrop-filter: blur(14px);
         }
 
@@ -346,47 +375,53 @@
 
         .section-head p {
             margin: 12px 0 0;
-            color: var(--muted);
             max-width: 58ch;
         }
 
         .card,
-        .step,
-        .faq,
         .panel,
-        .callout {
+        .faq,
+        .step,
+        .callout,
+        .mini-card,
+        .recorder-panel,
+        .saved-empty,
+        .saved-item,
+        .metric,
+        .preset-card {
             border-radius: var(--radius-lg);
-            border: 1px solid rgba(23, 34, 38, 0.08);
+            border: 1px solid rgba(19, 36, 45, 0.08);
             background: var(--panel-strong);
         }
 
         .card,
+        .panel,
         .faq,
-        .panel {
+        .mini-card,
+        .recorder-panel,
+        .metric,
+        .preset-card,
+        .saved-empty,
+        .saved-item {
             padding: 22px;
         }
 
         .card h3,
-        .step h3,
+        .panel h3,
         .faq h3,
-        .panel h3 {
+        .step h3,
+        .mini-card strong,
+        .metric strong,
+        .preset-card strong {
+            display: block;
             margin-bottom: 10px;
-            font-size: 1.15rem;
-        }
-
-        .card p,
-        .step p,
-        .faq p,
-        .panel p,
-        .callout p {
-            margin: 0;
-            color: var(--muted);
+            font-size: 1.12rem;
         }
 
         .step {
             position: relative;
-            padding: 22px 22px 24px;
             overflow: hidden;
+            padding: 22px 22px 24px;
         }
 
         .step::before {
@@ -398,97 +433,294 @@
             height: 40px;
             margin-bottom: 18px;
             border-radius: 12px;
-            background: linear-gradient(135deg, rgba(13, 141, 136, 0.18), rgba(11, 95, 102, 0.18));
+            background: linear-gradient(135deg, rgba(15, 139, 141, 0.18), rgba(11, 97, 102, 0.16));
             color: var(--teal-deep);
             font-weight: 700;
         }
 
         .callout {
             padding: 22px;
-            background: linear-gradient(135deg, rgba(13, 141, 136, 0.08), rgba(217, 157, 43, 0.10));
+            background: linear-gradient(135deg, rgba(15, 139, 141, 0.08), rgba(213, 148, 53, 0.10));
         }
 
-        .callout strong {
-            display: block;
-            margin-bottom: 8px;
-            font-size: 1.02rem;
+        .recorder-panel {
+            background:
+                linear-gradient(145deg, rgba(255, 252, 246, 0.94), rgba(248, 243, 234, 0.84)),
+                linear-gradient(135deg, rgba(15, 139, 141, 0.08), rgba(213, 148, 53, 0.06));
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.58);
         }
 
-        .tag-row {
+        .recorder-stage {
+            background:
+                linear-gradient(160deg, rgba(255, 253, 247, 0.96), rgba(248, 242, 232, 0.9)),
+                linear-gradient(135deg, rgba(199, 103, 78, 0.05), rgba(15, 139, 141, 0.06));
+        }
+
+        .field {
+            display: grid;
+            gap: 8px;
+            margin: 0;
+            padding: 0;
+            border: 0;
+            min-width: 0;
+        }
+
+        .field.full {
+            grid-column: 1 / -1;
+        }
+
+        .field label,
+        .preset-eyebrow {
+            padding: 0;
+            font-size: 0.9rem;
+            font-weight: 700;
+            color: var(--teal-deep);
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+        }
+
+        .text-field,
+        .select-field {
+            width: 100%;
+            min-width: 0;
+            padding: 14px 16px;
+            border-radius: 16px;
+            border: 1px solid rgba(19, 36, 45, 0.12);
+            background: rgba(255, 253, 248, 0.94);
+            color: var(--ink);
+            font: inherit;
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6);
+        }
+
+        .text-field:focus,
+        .select-field:focus {
+            outline: 2px solid rgba(15, 139, 141, 0.24);
+            border-color: rgba(15, 139, 141, 0.36);
+        }
+
+        .field-row {
             display: flex;
-            flex-wrap: wrap;
+            align-items: center;
             gap: 10px;
-            margin-top: 18px;
         }
 
-        .tag {
+        .field-row .select-field {
+            flex: 1;
+        }
+
+        .preset-card strong {
+            font-size: 1.24rem;
+            letter-spacing: -0.03em;
+        }
+
+        .status-strip {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .status-pill {
             display: inline-flex;
             align-items: center;
             padding: 9px 12px;
             border-radius: 999px;
-            background: rgba(23, 34, 38, 0.06);
-            font-size: 0.95rem;
-            font-weight: 500;
+            background: rgba(19, 36, 45, 0.08);
             color: var(--ink);
-        }
-
-        .settings-list,
-        .compact-list {
-            display: grid;
-            gap: 12px;
-            margin: 0;
-            padding: 0;
-            list-style: none;
-        }
-
-        .settings-list li,
-        .compact-list li {
-            padding: 14px 16px;
-            border-radius: var(--radius-md);
-            background: rgba(23, 34, 38, 0.04);
-            border: 1px solid rgba(23, 34, 38, 0.06);
-        }
-
-        .settings-list span,
-        .compact-list span {
-            display: block;
-            color: var(--muted);
-            margin-top: 4px;
-            font-size: 0.96rem;
-        }
-
-        .english-quote {
-            position: relative;
-            padding: 28px 28px 28px 34px;
-            border-left: 4px solid var(--teal);
-            background: rgba(255, 252, 247, 0.88);
-            border-radius: 0 var(--radius-lg) var(--radius-lg) 0;
-            color: var(--ink);
-            font-size: 1.02rem;
-        }
-
-        .english-quote p {
-            margin: 0;
-            color: var(--ink);
-        }
-
-        .english-quote small {
-            display: inline-block;
-            margin-top: 14px;
-            color: var(--muted);
-            letter-spacing: 0.04em;
+            font-size: 0.86rem;
+            font-weight: 700;
+            letter-spacing: 0.05em;
             text-transform: uppercase;
+        }
+
+        .status-pill.ready {
+            background: rgba(15, 139, 141, 0.12);
+            color: var(--teal-deep);
+        }
+
+        .status-pill.live {
+            background: rgba(199, 103, 78, 0.14);
+            color: #8e3826;
+        }
+
+        .status-pill.blocked {
+            background: rgba(91, 109, 117, 0.15);
+            color: #34474f;
+        }
+
+        .metric strong {
+            font-size: 1.42rem;
+            line-height: 1.1;
+            letter-spacing: -0.03em;
+        }
+
+        .metric span {
+            display: block;
+            margin-top: 8px;
+            font-size: 0.95rem;
+        }
+
+        .progress-block {
+            display: grid;
+            gap: 16px;
+            margin-top: 20px;
+        }
+
+        .progress-label {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            margin-bottom: 8px;
+            font-size: 0.95rem;
+        }
+
+        .progress-track {
+            height: 12px;
+            border-radius: 999px;
+            overflow: hidden;
+            background: rgba(19, 36, 45, 0.08);
+        }
+
+        .progress-fill {
+            width: 0;
+            height: 100%;
+            border-radius: inherit;
+            background: linear-gradient(135deg, var(--teal) 0%, var(--teal-deep) 100%);
+            transition: width 180ms ease;
+        }
+
+        .progress-fill.secondary {
+            background: linear-gradient(135deg, var(--gold) 0%, #c27d1f 100%);
+        }
+
+        .control-btn,
+        .class-button {
+            appearance: none;
+            border: 0;
+            cursor: pointer;
+            font: inherit;
+        }
+
+        .control-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 14px 18px;
+            border-radius: 999px;
+            background: linear-gradient(135deg, var(--teal) 0%, var(--teal-deep) 100%);
+            color: white;
+            font-weight: 700;
+            box-shadow: 0 14px 28px rgba(11, 97, 102, 0.2);
+            transition: transform 180ms ease, box-shadow 180ms ease, opacity 180ms ease;
+        }
+
+        .control-btn.secondary {
+            background: linear-gradient(135deg, var(--gold) 0%, #c27d1f 100%);
+            box-shadow: 0 14px 28px rgba(194, 125, 31, 0.2);
+        }
+
+        .control-btn.muted {
+            background: linear-gradient(135deg, #506067 0%, #304047 100%);
+            box-shadow: 0 14px 28px rgba(48, 64, 71, 0.18);
+        }
+
+        .ghost-btn:disabled,
+        .control-btn:disabled,
+        .class-button:disabled,
+        .text-field:disabled,
+        .select-field:disabled {
+            cursor: not-allowed;
+            opacity: 0.55;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .class-button {
+            min-height: 94px;
+            padding: 16px;
+            border-radius: 20px;
+            border: 1px solid rgba(19, 36, 45, 0.1);
+            background: rgba(255, 252, 246, 0.86);
+            color: var(--ink);
+            font-weight: 700;
+            text-align: center;
+            transition: transform 180ms ease, box-shadow 180ms ease, background 180ms ease, color 180ms ease;
+        }
+
+        .class-button span,
+        .kbd {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 28px;
+            padding: 4px 8px;
+            border-radius: 999px;
+            background: rgba(19, 36, 45, 0.08);
+            color: var(--ink);
+            font-size: 0.84rem;
             font-weight: 700;
         }
 
-        .upload-note {
-            background: linear-gradient(135deg, rgba(212, 111, 91, 0.12), rgba(217, 157, 43, 0.12));
+        .class-button span {
+            margin-top: 10px;
+        }
+
+        .class-button[data-active="true"] {
+            color: white;
+            border-color: transparent;
+            box-shadow: 0 16px 30px rgba(19, 36, 45, 0.12);
+        }
+
+        .class-button.inhale[data-active="true"] {
+            background: linear-gradient(135deg, var(--teal) 0%, var(--teal-deep) 100%);
+        }
+
+        .class-button.exhale[data-active="true"] {
+            background: linear-gradient(135deg, var(--gold) 0%, #c27d1f 100%);
+        }
+
+        .class-button.silence[data-active="true"] {
+            background: linear-gradient(135deg, #55656d 0%, #34474f 100%);
+        }
+
+        .message-box {
+            margin-top: 20px;
+            padding: 16px 18px;
+            border-radius: 18px;
+            border: 1px solid rgba(19, 36, 45, 0.08);
+            background: rgba(15, 139, 141, 0.08);
+            color: var(--ink);
+        }
+
+        .message-box[data-tone="error"] {
+            background: rgba(199, 103, 78, 0.12);
+            color: #8e3826;
+        }
+
+        .message-box[data-tone="warning"] {
+            background: rgba(213, 148, 53, 0.16);
+            color: #7a5417;
+        }
+
+        .saved-item strong {
+            display: block;
+            margin-bottom: 8px;
+            line-height: 1.3;
+        }
+
+        .saved-meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px 12px;
+            font-size: 0.92rem;
         }
 
         .footer {
             padding: 28px 0 64px;
-            color: var(--muted);
             text-align: center;
+            color: var(--muted);
             font-size: 0.95rem;
         }
 
@@ -498,11 +730,15 @@
             }
 
             .hero-grid,
-            .notice-grid,
             .cards,
             .steps,
-            .upload-grid,
-            .faq-grid {
+            .faq-grid,
+            .submission-grid,
+            .recorder-layout,
+            .field-grid,
+            .preset-grid,
+            .stats-grid,
+            .class-grid {
                 grid-template-columns: 1fr;
             }
 
@@ -516,13 +752,13 @@
             }
         }
 
-        @media (max-width: 640px) {
+        @media (max-width: 680px) {
             .shell {
                 width: min(var(--max-width), calc(100% - 20px));
             }
 
-            .section-card,
-            .hero {
+            .hero,
+            .section-card {
                 border-radius: 24px;
             }
 
@@ -530,12 +766,25 @@
                 padding: 24px 18px;
             }
 
-            .top-links {
-                justify-content: flex-end;
-            }
-
             h1 {
                 max-width: none;
+            }
+
+            .top-links,
+            .field-row,
+            .hero-actions,
+            .recorder-actions {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .pill-link,
+            .cta,
+            .ghost-link,
+            .ghost-btn,
+            .control-btn,
+            .saved-link {
+                width: 100%;
             }
         }
     </style>
@@ -546,15 +795,16 @@
         <div class="shell topbar-inner">
             <div class="brand">
                 <div class="brand-mark" aria-hidden="true"></div>
-                <span>Breathing Data Survey</span>
-                <span class="brand-note">PL / EN</span>
+                <span>Breathing Recorder</span>
+                <span class="brand-note">Browser Study</span>
             </div>
-            <nav class="top-links" aria-label="Szybkie linki / Quick links">
-                <a class="pill-link" href="#jak-to-dziala">Jak to działa / How it works</a>
-                <a class="pill-link" href="#czas-nagrania">Czas nagrań / Recording time</a>
-                <a class="pill-link" href="#aplikacja">Instrukcja aplikacji / App guide</a>
+            <nav class="top-links" aria-label="Quick links">
+                <a class="pill-link" href="#requirements">Requirements</a>
+                <a class="pill-link" href="#how-it-works">How It Works</a>
+                <a class="pill-link" href="#submission">Submission</a>
+                <a class="pill-link" href="#recorder">Recorder</a>
                 <a class="cta secondary" href="https://forms.gle/HsfETLKHTERcDJjN8" target="_blank"
-                    rel="noopener noreferrer">Formularz / Upload form</a>
+                    rel="noopener noreferrer">Open Upload Form</a>
             </nav>
         </div>
     </header>
@@ -563,491 +813,345 @@
         <section class="hero">
             <div class="hero-grid">
                 <div class="hero-copy">
-                    <div class="eyebrow">Badanie audio do AI / AI audio study</div>
+                    <div class="eyebrow">Audio Dataset Collection</div>
                     <h1>
-                        Nagraj 10 minut materiału oddechowego.
-                        <span class="headline-sub">Record a total of 10 minutes of breathing audio.</span>
+                        Record ten minutes of breathing audio.
+                        <span class="headline-sub">No installation. No desktop app. Just the browser.</span>
                     </h1>
                     <p>
-                        Ta strona wyjaśnia, jak wziąć udział w badaniu polegającym na nagraniu oddechu za pomocą
-                        aplikacji desktopowej.
-                        Zebrane pliki audio i metadane zadania będą wykorzystane do treningu oraz ewaluacji modeli AI w
-                        celach naukowych.
-                        <span class="translation">This page explains how to complete the breathing recording study using
-                            a desktop application. The collected audio files and task metadata will be used to train and
-                            evaluate AI models for scientific research.</span>
+                        This page runs the full recording workflow directly in the browser. Participants record
+                        breathing
+                        audio, label inhale and exhale phases in real time, download a ZIP package, and submit it
+                        through the study form.
                     </p>
                     <div class="hero-actions">
-                        <a class="cta"
-                            href="https://github.com/IwsonHD/breath-phase-data-generator/releases/download/V1/BreathingRecorder.exe"
-                            target="_blank" rel="noopener noreferrer">Pobierz aplikację / Download .exe</a>
-                        <a class="pill-link" href="#po-nagraniu">Po nagraniu / After recording</a>
+                        <a class="cta" href="#recorder">Open Recorder</a>
+                        <a class="ghost-link" href="#submission">View Submission Steps</a>
                     </div>
                     <div class="tag-row">
-                        <span class="tag">Desktop lub laptop / Desktop or laptop</span>
-                        <span class="tag">Działający mikrofon / Working microphone</span>
-                        <span class="tag">Kod uczestnika, nie prawdziwe dane / Participant code, not your real
-                            name</span>
+                        <span class="tag">NOSE mode locked</span>
+                        <span class="tag">60-second auto-saved segments</span>
+                        <span class="tag">Desktop or laptop recommended</span>
+                        <span class="tag">Participant code only</span>
                     </div>
                 </div>
 
                 <div class="hero-side">
                     <div class="mini-card">
-                        <strong>Wymagane ustawienia / Required settings</strong>
-                        <p>
-                            W aplikacji wybierz <b>NOSE</b> oraz <b>Evaluation (Eval)</b>.
-                            <span class="translation">In the app, select <b>NOSE</b> and <b>Evaluation
-                                    (Eval)</b>.</span>
-                        </p>
+                        <strong>Study preset</strong>
+                        <p>The recorder is fixed to NOSE mode and 60-second segments, so participants do not need to
+                            choose additional recording modes.</p>
                     </div>
                     <div class="mini-card">
-                        <strong>Ile trzeba nagrać / How much to record</strong>
-                        <p>
-                            Musisz nagrać łącznie <b>10 minut</b>. Jeden segment <b>Eval</b> trwa <b>1 minutę</b>, więc
-                            potrzebujesz <b>10 pełnych segmentów eval</b>.
-                            <span class="translation">You must record a total of <b>10 minutes</b>. One <b>Eval</b>
-                                segment lasts <b>1 minute</b>, so you need <b>10 full eval segments</b>.</span>
-                        </p>
+                        <strong>Recording target</strong>
+                        <p>The target is a total of 10 minutes. The easiest approach is to save 10 complete 60-second
+                            segments.</p>
                     </div>
                     <div class="mini-card">
-                        <strong>Wysyłka danych / Data submission</strong>
-                        <p>
-                            Po zakończeniu nagrywania spakuj folder do pliku ZIP i prześlij go przez formularz Google.
-                            <span class="translation">After recording, compress the folder into a ZIP file and submit it
-                                through the Google form.</span>
-                        </p>
+                        <strong>ZIP export</strong>
+                        <p>The recorder packages WAV and CSV files into a ZIP that keeps the same eval/raw and
+                            eval/label structure as the desktop pipeline.</p>
                     </div>
                     <div class="mini-card">
-                        <strong>Cel naukowy / Scientific purpose</strong>
-                        <p>
-                            Dane będą użyte do treningu i ewaluacji modeli rozpoznających fazy oddechu.
-                            <span class="translation">The data will be used to train and evaluate models that recognize
-                                breathing phases.</span>
-                        </p>
+                        <strong>Privacy</strong>
+                        <p>Participants should use a participant code instead of a real name. The form only needs the
+                            ZIP
+                            package produced by the recorder.</p>
                     </div>
                 </div>
             </div>
         </section>
 
-        <section class="section-card" id="opis-ankiety">
+        <section class="section-card" id="requirements">
             <div class="section-head">
                 <div>
-                    <h2>Opis ankiety / Survey description</h2>
-                    <p>
-                        Niżej znajduje się oficjalny opis zadania oraz krótkie wyjaśnienie praktyczne.
-                        <span class="translation">Below you can find the official task description and a practical
-                            explanation.</span>
-                    </p>
+                    <h2>Study Requirements</h2>
+                    <p>These are the rules that matter for data quality and downstream consistency.</p>
                 </div>
             </div>
-            <div class="notice-grid">
-                <div class="english-quote">
-                    <p>
-                        You will complete a short desktop audio recording task for AI research. You must use a desktop
-                        or laptop computer,
-                        a working microphone, and download a small recording application. The task involves recording
-                        short breathing segments
-                        and following simple on-screen instructions. Your audio recordings and task metadata will be
-                        collected for research
-                        dataset creation. Please do not use your real name inside the app; use the participant code
-                        provided in the study
-                        instructions. The study is only suitable for participants who are comfortable downloading and
-                        running a desktop
-                        application. Submissions from unsupported devices or setups may not be approved if the study
-                        instructions are not followed.
-                    </p>
-                    <small>Official task description</small>
-                </div>
-                <div class="callout">
-                    <strong>Co to oznacza w praktyce / What this means in practice</strong>
-                    <p>
-                        Udział polega na wykonaniu nagrań oddechu na komputerze lub laptopie z użyciem niewielkiej
-                        aplikacji desktopowej.
-                        W aplikacji nie wpisuj prawdziwego imienia i nazwiska, tylko kod uczestnika. Jeśli użyjesz
-                        nieobsługiwanego urządzenia,
-                        na przykład telefonu, albo nie zastosujesz się do instrukcji, zgłoszenie może nie zostać
-                        zaakceptowane.
-                        <span class="translation">Participation consists of making breathing recordings on a desktop or
-                            laptop using a small desktop app. Do not enter your real name in the app, only your
-                            participant code. If you use an unsupported device, such as a phone, or do not follow the
-                            instructions, your submission may not be accepted.</span>
-                    </p>
-                </div>
-            </div>
-        </section>
 
-        <section class="section-card" id="jak-to-dziala">
-            <div class="section-head">
-                <div>
-                    <h2>Jak to działa / How it works</h2>
-                    <p>
-                        Przejdź przez te kroki po kolei, żeby nagranie spełniło wymagania badania.
-                        <span class="translation">Follow these steps in order so that your recording meets the study
-                            requirements.</span>
-                    </p>
-                </div>
-            </div>
-            <div class="steps">
-                <article class="step" data-step="01">
-                    <h3>Przygotuj sprzęt / Prepare your setup</h3>
-                    <p>
-                        Użyj komputera stacjonarnego lub laptopa i upewnij się, że mikrofon działa poprawnie.
-                        <span class="translation">Use a desktop or laptop computer and make sure your microphone works
-                            properly.</span>
+            <div class="cards">
+                <article class="card">
+                    <h3>Target duration</h3>
+                    <p>Record a total of 10 minutes. The safest target is 10 complete one-minute segments.</p>
+                </article>
+                <article class="card">
+                    <h3>Fixed preset</h3>
+                    <p>The recorder stays in NOSE mode and saves 60-second segments automatically, so participants do
+                        not
+                        have to manage multiple recording modes.</p>
+                </article>
+                <article class="card">
+                    <h3>Quiet environment</h3>
+                    <p>Avoid TV, music, conversations, fans, traffic noise, or loud keyboard noise in the background.
                     </p>
                 </article>
+            </div>
+
+            <div class="callout" style="margin-top: 18px;">
+                <strong>Practical recommendation</strong>
+                <p>
+                    Keep recording continuously until the progress bar reaches 10 minutes. Stopping only after complete
+                    minute boundaries makes the resulting dataset cleaner and easier to review.
+                </p>
+            </div>
+        </section>
+
+        <section class="section-card" id="how-it-works">
+            <div class="section-head">
+                <div>
+                    <h2>How It Works</h2>
+                    <p>Follow the flow below to keep the submission consistent across participants.</p>
+                </div>
+            </div>
+
+            <div class="steps">
+                <article class="step" data-step="01">
+                    <h3>Prepare the setup</h3>
+                    <p>Use a desktop or laptop with a working microphone. A quiet room is strongly preferred.</p>
+                </article>
                 <article class="step" data-step="02">
-                    <h3>Pobierz aplikację / Download the app</h3>
-                    <p>
-                        Pobierz plik <b>BreathingRecorder.exe</b>, uruchom go i wybierz folder zapisu.
-                        <span class="translation">Download <b>BreathingRecorder.exe</b>, run it, and choose the output
-                            folder.</span>
+                    <h3>Allow microphone access</h3>
+                    <p>Open the recorder, click Start Recording, and allow the browser to use the selected microphone.
                     </p>
                 </article>
                 <article class="step" data-step="03">
-                    <h3>Nagraj wymagane segmenty / Record the required segments</h3>
-                    <p>
-                        Wybierz <b>NOSE</b> oraz <b>Evaluation</b> i nagrywaj tak długo, aż uzyskasz pełne 10 minut
-                        materiału.
-                        <span class="translation">Select <b>NOSE</b> and <b>Evaluation</b> and keep recording until you
-                            have the full 10 minutes of material.</span>
+                    <h3>Record and label live</h3>
+                    <p>Stay in NOSE mode, label inhale, exhale, and silence, and continue until you reach 10 minutes.
                     </p>
                 </article>
                 <article class="step" data-step="04">
-                    <h3>Spakuj i wyślij / Zip and submit</h3>
-                    <p>
-                        Po nagraniu spakuj folder z danymi do ZIP i prześlij go przez formularz.
-                        <span class="translation">After recording, compress the data folder into a ZIP file and submit
-                            it through the form.</span>
-                    </p>
+                    <h3>Download and submit</h3>
+                    <p>Download the ZIP package and upload it through the study form linked on this page.</p>
                 </article>
             </div>
         </section>
 
-        <section class="section-card" id="czas-nagrania">
+        <section class="section-card" id="submission">
             <div class="section-head">
                 <div>
-                    <h2>Wymagany czas nagrań / Required recording length</h2>
-                    <p>
-                        To jest najważniejszy wymóg ilościowy w tym zadaniu.
-                        <span class="translation">This is the key quantity requirement in this task.</span>
-                    </p>
+                    <h2>Submission</h2>
+                    <p>The submission workflow is intentionally simple: one ZIP package, one form upload.</p>
                 </div>
             </div>
-            <div class="cards">
-                <article class="card">
-                    <h3>Łącznie 10 minut / Total of 10 minutes</h3>
-                    <p>
-                        Musisz dostarczyć <b>łącznie 10 minut</b> nagrań oddechowych.
-                        <span class="translation">You must submit a <b>total of 10 minutes</b> of breathing
-                            recordings.</span>
-                    </p>
-                </article>
-                <article class="card">
-                    <h3>Jeden Eval = 1 minuta / One Eval = 1 minute</h3>
-                    <p>
-                        W trybie <b>Evaluation</b> jeden pełny zapisany segment ma <b>60 sekund</b>, czyli <b>1
-                            minutę</b>.
-                        <span class="translation">In <b>Evaluation</b> mode, one fully saved segment lasts <b>60
-                                seconds</b>, which is <b>1 minute</b>.</span>
-                    </p>
-                </article>
-                <article class="card">
-                    <h3>Praktyczny cel: 10 segmentów / Practical target: 10 segments</h3>
-                    <p>
-                        Najbezpieczniej jest przygotować <b>10 pełnych plików eval</b>, bo <b>10 × 1 minuta = 10
-                            minut</b>.
-                        <span class="translation">The safest approach is to prepare <b>10 full eval files</b>, because
-                            <b>10 × 1 minute = 10 minutes</b>.</span>
-                    </p>
-                </article>
-            </div>
-            <div class="callout" style="margin-top: 18px;">
-                <strong>Najprostszy sposób / Easiest method</strong>
-                <p>
-                    Uruchom aplikację w trybie <b>NOSE</b> + <b>Evaluation</b> i nagrywaj ciągle przez około <b>10
-                        minut</b>. Aplikacja zapisuje
-                    jeden pełny segment eval co <b>60 sekund</b>, więc po około 10 minutach powinieneś mieć <b>10
-                        pełnych plików eval</b>.
-                    Krótszy, niepełny ostatni segment może nie zostać zaliczony, więc najlepiej zakończyć dopiero po
-                    zapisaniu wszystkich 10 pełnych minut.
-                    <span class="translation">Run the app in <b>NOSE</b> + <b>Evaluation</b> mode and record
-                        continuously for about <b>10 minutes</b>. The app saves one full eval segment every <b>60
-                            seconds</b>, so after about 10 minutes you should have <b>10 full eval files</b>. A shorter
-                        incomplete final segment may not count, so it is best to stop only after all 10 full minutes
-                        have been saved.</span>
-                </p>
-            </div>
-        </section>
 
-        <section class="section-card" id="aplikacja">
-            <div class="section-head">
-                <div>
-                    <h2>Jak używać aplikacji / How to use the app</h2>
-                    <p>
-                        W tej ankiecie interesuje nas nagranie przez nos, dlatego kluczowe są ustawienia <b>NOSE</b> i
-                        <b>Evaluation (Eval)</b>.
-                        <span class="translation">For this study, we need nasal breathing recordings, which is why the
-                            key settings are <b>NOSE</b> and <b>Evaluation (Eval)</b>.</span>
-                    </p>
-                </div>
-            </div>
-            <div class="cards">
-                <article class="card">
-                    <h3>1. Ustaw pola startowe / Set the basic fields</h3>
-                    <ul class="settings-list">
-                        <li><b>PERSONNAME</b><span>Wpisz kod uczestnika, nie prawdziwe imię i nazwisko. / Enter your
-                                participant code, not your real name.</span></li>
-                        <li><b>Output folder</b><span>Wskaż folder, w którym aplikacja zapisze wygenerowane pliki. /
-                                Choose the folder where the app will save the generated files.</span></li>
-                        <li><b>MICROPHONE INPUT</b><span>Wybierz działający mikrofon, z którego chcesz nagrywać. /
-                                Select the working microphone you want to use.</span></li>
-                    </ul>
-                </article>
-                <article class="card">
-                    <h3>2. Ustaw wymagane opcje / Set the required options</h3>
-                    <ul class="settings-list">
-                        <li><b>MODE: NOSE</b><span>Nagranie ma dotyczyć oddechu przez nos. / The recording must capture
-                                breathing through the nose.</span></li>
-                        <li><b>MEANS OF USAGE: Evaluation</b><span>Wybierz <b>Evaluation</b>, czyli tryb <b>Eval</b>. /
-                                Choose <b>Evaluation</b>, that is the <b>Eval</b> mode.</span></li>
-                        <li><b>MICROPHONE QUALITY</b><span>Wybierz opcję najlepiej odpowiadającą jakości mikrofonu. /
-                                Choose the option that best matches your microphone quality.</span></li>
-                    </ul>
-                </article>
-                <article class="card">
-                    <h3>3. Nagrywaj i zapisuj / Record and save</h3>
-                    <ul class="settings-list">
-                        <li><b>START</b><span>Rozpocznij nagrywanie przyciskiem lub klawiszem <b>Space</b>. / Start
-                                recording using the button or the <b>Space</b> key.</span></li>
-                        <li><b>W / E / R</b><span>Ustawiaj etykiety: <b>W</b> = inhale, <b>E</b> = exhale, <b>R</b> =
-                                silence. / Set labels: <b>W</b> = inhale, <b>E</b> = exhale, <b>R</b> = silence.</span>
-                        </li>
-                        <li><b>Przykład / Example</b><span>Jeśli bierzesz wdech, kliknij <b>W</b>. Jeśli w danym
-                                momencie nie oddychasz i ma być cisza, kliknij <b>R</b>. Potem zmieniaj to na bieżąco,
-                                na przykład: <b>W, R, W, R</b>, zależnie od tego, co faktycznie robisz. Jeśli pojawia
-                                się wydech, kliknij <b>E</b>. / If you are inhaling, press <b>W</b>. If you are not
-                                breathing at that moment and it should be silence, press <b>R</b>. Then keep switching
-                                as needed, for example: <b>W, R, W, R</b>, depending on what you are actually doing. If
-                                you exhale, press <b>E</b>.</span></li>
-                        <li><b>Auto-save w Eval</b><span>W trybie <b>Evaluation</b> aplikacja zapisuje pełny segment co
-                                <b>1 minutę</b>. / In <b>Evaluation</b> mode, the app saves a full segment every <b>1
-                                    minute</b>.</span></li>
-                        <li><b>STOP</b><span>Zakończ dopiero po uzyskaniu co najmniej 10 pełnych minut. / Stop only
-                                after you have recorded at least 10 full minutes.</span></li>
-                    </ul>
-                </article>
-            </div>
-            <div class="tag-row">
-                <span class="tag">Space = start</span>
-                <span class="tag">S = stop</span>
-                <span class="tag">W = inhale</span>
-                <span class="tag">E = exhale</span>
-                <span class="tag">R = silence</span>
-            </div>
-        </section>
-
-        <section class="section-card" id="wymagania">
-            <div class="section-head">
-                <div>
-                    <h2>Ważne zasady / Important rules</h2>
-                    <p>
-                        Te warunki wpływają na jakość danych i na to, czy zgłoszenie będzie użyteczne badawczo.
-                        <span class="translation">These conditions affect data quality and whether the submission will
-                            be useful for research.</span>
-                    </p>
-                </div>
-            </div>
-            <div class="cards">
-                <article class="card">
-                    <h3>Nie używaj telefonu / Do not use a phone</h3>
-                    <p>
-                        Badanie jest przygotowane dla aplikacji desktopowej.
-                        <span class="translation">This study is designed for a desktop application.</span>
-                    </p>
-                </article>
-                <article class="card">
-                    <h3>Nie wpisuj danych osobowych / Do not enter personal data</h3>
-                    <p>
-                        W aplikacji użyj kodu uczestnika zamiast prawdziwego imienia i nazwiska.
-                        <span class="translation">Use your participant code in the app instead of your real name.</span>
-                    </p>
-                </article>
-                <article class="card">
-                    <h3>Nagrywaj w całkowitej ciszy / Record in complete silence</h3>
-                    <p>
-                        W otoczeniu powinna być możliwie całkowita cisza. Unikaj rozmów, telewizora, muzyki, wentylatora
-                        i innych dźwięków tła. Nie klikaj też zbyt głośno w klawiaturę, bo te dźwięki mogą wejść do
-                        nagrania.
-                        <span class="translation">The environment should be as silent as possible. Avoid conversations,
-                            TV, music, fans, and other background sounds. Also do not press the keyboard too loudly,
-                            because those sounds may end up in the recording.</span>
-                    </p>
-                </article>
-            </div>
-        </section>
-
-        <section class="section-card" id="cel-naukowy">
-            <div class="section-head">
-                <div>
-                    <h2>W jaki sposób będą użyte dane / How the data will be used</h2>
-                    <p>
-                        Zebrane nagrania i metadane mają konkretny cel naukowy.
-                        <span class="translation">The collected recordings and task metadata have a specific scientific
-                            purpose.</span>
-                    </p>
-                </div>
-            </div>
-            <div class="notice-grid">
+            <div class="submission-grid">
                 <div class="panel">
-                    <h3>Trening i ewaluacja modeli / Training and evaluation of models</h3>
-                    <p>
-                        Dane audio będą wykorzystane do treningu i ewaluacji modeli AI rozpoznających fazy oddechu,
-                        takie jak wdech, wydech i cisza.
-                        <span class="translation">The audio data will be used to train and evaluate AI models that
-                            recognize breathing phases such as inhale, exhale, and silence.</span>
-                    </p>
+                    <h3>1. Download the ZIP</h3>
+                    <p>Click Download ZIP after the recording session. The package includes WAV files, CSV labels, and a
+                        short session summary.</p>
                 </div>
                 <div class="panel">
-                    <h3>Wyłącznie cele naukowe / Scientific use only</h3>
-                    <p>
-                        Materiały są zbierane do budowy badawczego zbioru danych i do badań nad jakością modeli.
-                        <span class="translation">The materials are collected to build a research dataset and to support
-                            model evaluation in scientific work.</span>
+                    <h3>2. Keep the package intact</h3>
+                    <p>Do not reorganize the ZIP. It already uses the expected eval/raw and eval/label folder layout.
                     </p>
                 </div>
             </div>
-        </section>
 
-        <section class="section-card" id="po-nagraniu">
-            <div class="section-head">
-                <div>
-                    <h2>Co zrobić po nagraniu / What to do after recording</h2>
-                    <p>
-                        Po zakończeniu pracy w aplikacji przygotuj jedną paczkę ZIP do wysyłki.
-                        <span class="translation">After finishing the app session, prepare one ZIP package for
-                            submission.</span>
-                    </p>
-                </div>
-            </div>
-            <div class="upload-grid">
-                <div class="panel upload-note">
-                    <h3>1. Sprawdź zapisane pliki / Check the saved files</h3>
-                    <p>
-                        Otwórz <b>Output folder</b> i upewnij się, że masz zapisane pliki z folderu <b>eval</b>. Dla
-                        tego zadania najlepiej mieć
-                        <b>10 pełnych plików eval</b>, czyli razem <b>10 minut</b> nagrań.
-                        <span class="translation">Open the <b>Output folder</b> and verify that the files in the
-                            <b>eval</b> folder have been saved. For this task, the best target is <b>10 full eval
-                                files</b>, which means <b>10 minutes</b> of recordings in total.</span>
-                    </p>
-                </div>
-                <div class="panel upload-note">
-                    <h3>2. Spakuj dane do ZIP / Compress the data into ZIP</h3>
-                    <p>
-                        Spakuj folder z wygenerowanymi danymi do pliku <b>.zip</b>. Najlepiej wysłać jedną uporządkowaną
-                        paczkę, a nie pojedyncze pliki.
-                        <span class="translation">Compress the generated data folder into a <b>.zip</b> file. It is best
-                            to submit one organized package rather than individual loose files.</span>
-                    </p>
-                </div>
-            </div>
             <div class="callout" style="margin-top: 18px;">
-                <strong>3. Wyślij paczkę przez formularz / Submit the ZIP through the form</strong>
+                <strong>3. Upload through the form</strong>
                 <p>
-                    Po spakowaniu danych wypełnij formularz i dołącz przygotowany plik ZIP:
+                    Open the upload form and attach the downloaded ZIP package:
                     <a href="https://forms.gle/HsfETLKHTERcDJjN8" target="_blank"
                         rel="noopener noreferrer">https://forms.gle/HsfETLKHTERcDJjN8</a>
-                    <span class="translation">After compressing the data, fill out the form and upload the prepared ZIP
-                        file using the same link above.</span>
                 </p>
             </div>
         </section>
 
-        <section class="section-card" id="skrocona-checklista">
+        <section class="section-card" id="recorder">
             <div class="section-head">
                 <div>
-                    <h2>Szybka checklista / Quick checklist</h2>
+                    <h2>Browser Recorder</h2>
                     <p>
-                        Sprawdź te punkty przed wysłaniem zgłoszenia.
-                        <span class="translation">Check these points before submitting your response.</span>
+                        Allow microphone access, record the session, label breathing phases live, and download a ZIP
+                        package when the session is complete.
                     </p>
                 </div>
             </div>
-            <ul class="compact-list">
-                <li><b>Sprzęt / Equipment:</b> używam desktopa lub laptopa i mam działający mikrofon.<span
-                        class="translation">I am using a desktop or laptop and I have a working microphone.</span></li>
-                <li><b>Aplikacja / App:</b> pobrałem i uruchomiłem <b>BreathingRecorder.exe</b>.<span
-                        class="translation">I downloaded and ran <b>BreathingRecorder.exe</b>.</span></li>
-                <li><b>Nazwa uczestnika / Participant name:</b> wpisałem kod uczestnika, a nie prawdziwe dane.<span
-                        class="translation">I entered my participant code, not my real personal information.</span></li>
-                <li><b>Ustawienia / Settings:</b> wybrałem <b>NOSE</b> oraz <b>Evaluation (Eval)</b>.<span
-                        class="translation">I selected <b>NOSE</b> and <b>Evaluation (Eval)</b>.</span></li>
-                <li><b>Czas / Duration:</b> mam co najmniej <b>10 minut</b> nagrań, najlepiej <b>10 pełnych plików eval
-                        po 1 minucie</b>.<span class="translation">I have at least <b>10 minutes</b> of recordings,
-                        ideally <b>10 full eval files of 1 minute each</b>.</span></li>
-                <li><b>Wysyłka / Submission:</b> spakowałem dane do <b>ZIP</b> i wysłałem je przez formularz.<span
-                        class="translation">I compressed the data into a <b>ZIP</b> file and submitted it through the
-                        form.</span></li>
-            </ul>
+
+            <div class="callout" style="margin-bottom: 22px;">
+                <strong>Important</strong>
+                <p>
+                    Do not refresh this page or close the browser tab before downloading the ZIP. The current session
+                    is stored only in browser memory, so refreshing or closing the page will remove all unsaved
+                    recordings and labels.
+                </p>
+            </div>
+
+            <div class="recorder-layout">
+                <div class="recorder-panel">
+                    <div class="field-grid">
+                        <div class="field full">
+                            <label for="participant-code">Participant Code</label>
+                            <input class="text-field" id="participant-code" name="participant-code" type="text"
+                                value="Kinga_M" maxlength="64" autocomplete="off">
+                            <span class="field-hint">Use a participant code, not a real name.</span>
+                        </div>
+
+                        <div class="field full">
+                            <label for="microphone-select">Microphone</label>
+                            <div class="field-row">
+                                <select class="select-field" id="microphone-select" name="microphone-select">
+                                    <option value="default">System default microphone</option>
+                                </select>
+                                <button class="ghost-btn" id="refresh-microphones" type="button">Refresh
+                                    Devices</button>
+                            </div>
+                            <span class="field-hint">Microphone names become available after the browser gets
+                                permission.</span>
+                        </div>
+                    </div>
+
+                    <div class="preset-grid" style="margin-top: 18px;">
+                        <div class="preset-card">
+                            <span class="preset-eyebrow">Mode</span>
+                            <strong>NOSE</strong>
+                            <p>This study is locked to nasal breathing recordings.</p>
+                        </div>
+                        <div class="preset-card">
+                            <span class="preset-eyebrow">Segment Length</span>
+                            <strong>60 sec</strong>
+                            <p>A full segment is saved automatically every minute.</p>
+                        </div>
+                        <div class="preset-card">
+                            <span class="preset-eyebrow">Audio Format</span>
+                            <strong>WAV + CSV</strong>
+                            <p>Mono audio, event labels, and ZIP export for submission.</p>
+                        </div>
+                    </div>
+
+                    <p class="support-note">
+                        The recorder works on HTTPS or localhost. A current desktop browser is recommended for stable
+                        microphone permissions and keyboard shortcuts.
+                    </p>
+                </div>
+
+                <div class="recorder-panel recorder-stage">
+                    <div class="status-strip">
+                        <span class="status-pill ready" id="recorder-status-pill">Ready</span>
+                        <span class="inline-note" id="recorder-status-text">Click Start Recording and allow microphone
+                            access when prompted.</span>
+                    </div>
+
+                    <div class="stats-grid">
+                        <div class="metric">
+                            <strong id="current-class-display">READY</strong>
+                            <span>Current label during recording</span>
+                        </div>
+                        <div class="metric">
+                            <strong id="saved-count-display">0 saved</strong>
+                            <span>Saved segments currently included in the ZIP</span>
+                        </div>
+                        <div class="metric">
+                            <strong>10:00</strong>
+                            <span>Total recording target for a complete submission</span>
+                        </div>
+                    </div>
+
+                    <div class="progress-block">
+                        <div>
+                            <div class="progress-label">
+                                <span>Current segment</span>
+                                <span id="segment-progress-text">0:00 / 1:00</span>
+                            </div>
+                            <div class="progress-track">
+                                <div class="progress-fill" id="segment-progress-fill"></div>
+                            </div>
+                        </div>
+                        <div>
+                            <div class="progress-label">
+                                <span>Study progress</span>
+                                <span id="session-progress-text">0:00 / 10:00</span>
+                            </div>
+                            <div class="progress-track">
+                                <div class="progress-fill secondary" id="session-progress-fill"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="recorder-actions">
+                        <button class="control-btn" id="start-recording" type="button">Start Recording</button>
+                        <button class="control-btn muted" id="stop-recording" type="button" disabled>Stop</button>
+                        <button class="control-btn secondary" id="download-zip" type="button" disabled>Download
+                            ZIP</button>
+                        <button class="ghost-btn" id="clear-session" type="button" disabled>Clear Session</button>
+                    </div>
+
+                    <div class="class-grid">
+                        <button class="class-button inhale" id="class-inhale" type="button" data-label="inhale"
+                            data-active="false" disabled>
+                            Inhale
+                            <span>W</span>
+                        </button>
+                        <button class="class-button exhale" id="class-exhale" type="button" data-label="exhale"
+                            data-active="false" disabled>
+                            Exhale
+                            <span>E</span>
+                        </button>
+                        <button class="class-button silence" id="class-silence" type="button" data-label="silence"
+                            data-active="true" disabled>
+                            Silence
+                            <span>R</span>
+                        </button>
+                    </div>
+
+                    <p class="shortcut-note">
+                        Shortcuts: <span class="kbd">Space</span> start, <span class="kbd">S</span> stop,
+                        <span class="kbd">W</span> inhale, <span class="kbd">E</span> exhale,
+                        <span class="kbd">R</span> silence.
+                    </p>
+
+                    <div class="message-box" id="recorder-message" data-tone="info">
+                        This recorder runs entirely in the browser. When the session is complete, download the ZIP and
+                        submit it with the upload form.
+                    </div>
+
+                    <div class="saved-list" id="saved-list">
+                        <div class="saved-empty">No saved segments yet. WAV and CSV files will appear here after the
+                            first completed save.</div>
+                    </div>
+                </div>
+            </div>
         </section>
 
         <section class="section-card" id="faq">
             <div class="section-head">
                 <div>
-                    <h2>Najczęstsze pytania / FAQ</h2>
-                    <p>
-                        Krótko o najważniejszych sprawach organizacyjnych.
-                        <span class="translation">Short answers to the most important practical questions.</span>
-                    </p>
+                    <h2>FAQ</h2>
+                    <p>Short answers to the most common participant questions.</p>
                 </div>
             </div>
+
             <div class="faq-grid">
                 <article class="faq">
-                    <h3>Czy mogę użyć telefonu? / Can I use a phone?</h3>
-                    <p>
-                        Nie. To zadanie jest przeznaczone dla aplikacji działającej na desktopie lub laptopie.
-                        <span class="translation">No. This task is intended for an app running on a desktop or
-                            laptop.</span>
-                    </p>
+                    <h3>Do I need to install anything?</h3>
+                    <p>No. The recorder runs directly in the browser. Participants only need to open the page and allow
+                        microphone access.</p>
                 </article>
                 <article class="faq">
-                    <h3>Czy mam podać swoje prawdziwe dane? / Should I use my real name?</h3>
-                    <p>
-                        Nie. Użyj wyłącznie kodu uczestnika z instrukcji badania.
-                        <span class="translation">No. Use only the participant code provided in the study
-                            instructions.</span>
-                    </p>
+                    <h3>Why can I not change the recording mode?</h3>
+                    <p>This study is locked to NOSE mode on purpose. The goal is to keep all participant recordings in
+                        the
+                        same breathing setup.</p>
                 </article>
                 <article class="faq">
-                    <h3>Jakie ustawienia mam wybrać? / Which settings should I choose?</h3>
-                    <p>
-                        Wybierz <b>NOSE</b> oraz <b>Evaluation (Eval)</b>.
-                        <span class="translation">Choose <b>NOSE</b> and <b>Evaluation (Eval)</b>.</span>
-                    </p>
+                    <h3>What if the microphone does not work?</h3>
+                    <p>Refresh the device list, choose another microphone, and make sure the browser has permission to
+                        use
+                        audio input. If needed, close other apps that may be using the microphone.</p>
                 </article>
                 <article class="faq">
-                    <h3>Ile mam nagrać? / How much do I need to record?</h3>
-                    <p>
-                        Łącznie <b>10 minut</b>. W trybie <b>Eval</b> jeden pełny segment to <b>1 minuta</b>.
-                        <span class="translation">A total of <b>10 minutes</b>. In <b>Eval</b> mode, one full segment
-                            equals <b>1 minute</b>.</span>
-                    </p>
+                    <h3>Can I use a phone?</h3>
+                    <p>A desktop or laptop is recommended. Phones may be less reliable for permissions, shortcuts, and
+                        precise live labeling.</p>
                 </article>
                 <article class="faq">
-                    <h3>Ile plików powinienem mieć? / How many files should I have?</h3>
-                    <p>
-                        Najlepiej <b>10 pełnych plików eval</b>, bo to daje wymagane <b>10 minut</b> materiału.
-                        <span class="translation">Ideally, you should have <b>10 full eval files</b>, because that gives
-                            the required <b>10 minutes</b> of material.</span>
-                    </p>
+                    <h3>What should I enter as the participant name?</h3>
+                    <p>Use a participant code only. Do not enter a real name or personal information.</p>
                 </article>
                 <article class="faq">
-                    <h3>Jak mam oddać pliki? / How should I submit the files?</h3>
-                    <p>
-                        Spakuj folder z danymi do ZIP i prześlij go przez formularz Google.
-                        <span class="translation">Compress the data folder into a ZIP file and submit it through the
-                            Google form.</span>
+                    <h3>How should I submit the files?</h3>
+                    <p>Download the ZIP package from the recorder and upload it through the Google form linked above.
                     </p>
                 </article>
             </div>
@@ -1056,15 +1160,16 @@
 
     <footer class="footer shell">
         <p>
-            Pobranie aplikacji / Download:
-            <a href="https://github.com/IwsonHD/breath-phase-data-generator/releases/download/V1/BreathingRecorder.exe"
-                target="_blank" rel="noopener noreferrer">BreathingRecorder.exe</a>
+            Recorder: <a href="#recorder">Open Browser Recorder</a>
             &nbsp;•&nbsp;
-            Wysyłka danych / Submission:
-            <a href="https://forms.gle/HsfETLKHTERcDJjN8" target="_blank" rel="noopener noreferrer">formularz Google /
-                Google form</a>
+            Submission: <a href="https://forms.gle/HsfETLKHTERcDJjN8" target="_blank" rel="noopener noreferrer">Google
+                Form</a>
         </p>
     </footer>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"
+        referrerpolicy="no-referrer"></script>
+    <script src="web-recorder.js"></script>
 </body>
 
 </html>
