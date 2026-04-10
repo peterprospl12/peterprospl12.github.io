@@ -11,6 +11,12 @@
         participantInput: document.getElementById("participant-code"),
         microphoneSelect: document.getElementById("microphone-select"),
         refreshButton: document.getElementById("refresh-microphones"),
+        startMicTestButton: document.getElementById("start-microphone-test"),
+        stopMicTestButton: document.getElementById("stop-microphone-test"),
+        micTestLevelText: document.getElementById("microphone-test-level-text"),
+        micTestLevelFill: document.getElementById("microphone-test-level-fill"),
+        micTestStatus: document.getElementById("microphone-test-status"),
+        micTestPlayback: document.getElementById("microphone-test-playback"),
         startButton: document.getElementById("start-recording"),
         stopButton: document.getElementById("stop-recording"),
         downloadZipButton: document.getElementById("download-zip"),
@@ -50,6 +56,16 @@
         segmentSequence: 0,
         downloadInProgress: false,
         lastUiRefreshAt: 0,
+        isMicTestActive: false,
+        isMicTestStopping: false,
+        micTestStream: null,
+        micTestRecorder: null,
+        micTestChunks: [],
+        micTestAudioUrl: "",
+        micTestAudioContext: null,
+        micTestAnalyser: null,
+        micTestSourceNode: null,
+        micTestMeterFrame: 0,
     }
 
     const formControls = [
@@ -75,9 +91,21 @@
         return null
     }
 
+    function getMicTestSupportBlocker() {
+        if (typeof window.MediaRecorder !== "function") {
+            return "This browser cannot save a microphone test clip for playback."
+        }
+
+        return null
+    }
+
     function setMessage(text, tone) {
         dom.message.textContent = text
         dom.message.dataset.tone = tone
+    }
+
+    function setMicrophoneTestStatus(text) {
+        dom.micTestStatus.textContent = text
     }
 
     function getSelectedMicrophoneLabel() {
@@ -125,6 +153,23 @@
         formControls.forEach((control) => {
             control.disabled = disabled
         })
+    }
+
+    function clearMicrophoneTestSample() {
+        if (state.micTestAudioUrl) {
+            URL.revokeObjectURL(state.micTestAudioUrl)
+            state.micTestAudioUrl = ""
+        }
+
+        dom.micTestPlayback.pause()
+        dom.micTestPlayback.removeAttribute("src")
+        dom.micTestPlayback.hidden = true
+        dom.micTestPlayback.load()
+    }
+
+    function resetMicrophoneTestMeter(text) {
+        dom.micTestLevelFill.style.width = "0%"
+        dom.micTestLevelText.textContent = text
     }
 
     function ensureSegmentUrls(segment) {
@@ -202,6 +247,18 @@
         return state.segmentInputSamples / state.inputSampleRate
     }
 
+    function updateMicrophoneTestUi() {
+        const blocker = getSupportBlocker() || getMicTestSupportBlocker()
+        dom.startMicTestButton.disabled = Boolean(blocker) || state.isRecording || state.isMicTestActive || state.isMicTestStopping
+        dom.stopMicTestButton.disabled = !state.isMicTestActive || state.isMicTestStopping
+        dom.micTestPlayback.hidden = !state.micTestAudioUrl
+
+        if (blocker && !state.isMicTestActive && !state.isMicTestStopping) {
+            setMicrophoneTestStatus(blocker)
+            resetMicrophoneTestMeter("Unavailable")
+        }
+    }
+
     function updateStatus() {
         const blocker = getSupportBlocker()
         const currentSegmentSeconds = getCurrentSegmentSeconds()
@@ -220,10 +277,10 @@
         dom.sessionProgressText.textContent = `${formatDuration(totalVisibleSeconds)} / ${formatDuration(STUDY_TARGET_SECONDS)}`
         dom.sessionProgressFill.style.width = `${Math.min(100, (totalVisibleSeconds / STUDY_TARGET_SECONDS) * 100)}%`
 
-        dom.startButton.disabled = Boolean(blocker) || state.isRecording
+        dom.startButton.disabled = Boolean(blocker) || state.isRecording || state.isMicTestActive || state.isMicTestStopping
         dom.stopButton.disabled = !state.isRecording
-        dom.downloadZipButton.disabled = state.isRecording || !state.sessionSegments.length || !window.JSZip || state.downloadInProgress
-        dom.clearSessionButton.disabled = state.isRecording || !state.sessionSegments.length
+        dom.downloadZipButton.disabled = state.isRecording || state.isMicTestActive || state.isMicTestStopping || !state.sessionSegments.length || !window.JSZip || state.downloadInProgress
+        dom.clearSessionButton.disabled = state.isRecording || state.isMicTestActive || state.isMicTestStopping || !state.sessionSegments.length
 
         dom.classButtons.forEach((button) => {
             button.disabled = !state.isRecording
@@ -234,13 +291,19 @@
             dom.statusPill.className = "status-pill blocked"
             dom.statusPill.textContent = "Blocked"
             dom.statusText.textContent = blocker
-            if (!state.isRecording) {
+            if (!state.isRecording && !state.isMicTestActive && !state.isMicTestStopping) {
                 setMessage(blocker, "error")
             }
         } else if (state.isRecording && state.activeConfig) {
             dom.statusPill.className = "status-pill live"
             dom.statusPill.textContent = "Recording"
             dom.statusText.textContent = `NOSE ONLY • ${formatDuration(SEGMENT_DURATION_SECONDS)} segments • ${state.activeConfig.deviceLabel}`
+        } else if (state.isMicTestActive || state.isMicTestStopping) {
+            dom.statusPill.className = "status-pill live"
+            dom.statusPill.textContent = "Mic Check"
+            dom.statusText.textContent = state.isMicTestStopping
+                ? "Stopping microphone test..."
+                : `Testing microphone • ${getSelectedMicrophoneLabel()}`
         } else {
             dom.statusPill.className = "status-pill ready"
             dom.statusPill.textContent = "Ready"
@@ -256,6 +319,7 @@
 
         state.lastUiRefreshAt = now
         updateStatus()
+        updateMicrophoneTestUi()
     }
 
     function populateMicrophoneOptions(inputDevices) {
@@ -327,6 +391,224 @@
 
             throw error
         }
+    }
+
+    function getMediaRecorderOptions() {
+        if (typeof window.MediaRecorder !== "function") {
+            return null
+        }
+
+        const mimeCandidates = [
+            "audio/webm;codecs=opus",
+            "audio/webm",
+            "audio/ogg;codecs=opus",
+            "audio/ogg",
+        ]
+
+        if (typeof window.MediaRecorder.isTypeSupported !== "function") {
+            return {}
+        }
+
+        for (const candidate of mimeCandidates) {
+            if (window.MediaRecorder.isTypeSupported(candidate)) {
+                return { mimeType: candidate }
+            }
+        }
+
+        return {}
+    }
+
+    async function setupMicrophoneTestMeter(stream) {
+        const AudioContextClass = window.AudioContext || window.webkitAudioContext
+        const audioContext = new AudioContextClass()
+        await audioContext.resume()
+
+        const analyser = audioContext.createAnalyser()
+        analyser.fftSize = 2048
+        analyser.smoothingTimeConstant = 0.85
+
+        const sourceNode = audioContext.createMediaStreamSource(stream)
+        sourceNode.connect(analyser)
+
+        state.micTestAudioContext = audioContext
+        state.micTestAnalyser = analyser
+        state.micTestSourceNode = sourceNode
+
+        const data = new Uint8Array(analyser.fftSize)
+        const step = function () {
+            if ((!state.isMicTestActive && !state.isMicTestStopping) || !state.micTestAnalyser) {
+                return
+            }
+
+            state.micTestAnalyser.getByteTimeDomainData(data)
+
+            let sumSquares = 0
+            for (let index = 0; index < data.length; index += 1) {
+                const centeredSample = (data[index] - 128) / 128
+                sumSquares += centeredSample * centeredSample
+            }
+
+            const rms = Math.sqrt(sumSquares / data.length)
+            const normalizedLevel = Math.min(1, rms * 7)
+            const fillWidth = normalizedLevel > 0 ? Math.max(4, normalizedLevel * 100) : 0
+            dom.micTestLevelFill.style.width = `${fillWidth}%`
+
+            if (normalizedLevel < 0.05) {
+                dom.micTestLevelText.textContent = "No signal"
+            } else if (normalizedLevel < 0.16) {
+                dom.micTestLevelText.textContent = "Low signal"
+            } else if (normalizedLevel < 0.32) {
+                dom.micTestLevelText.textContent = "Good signal"
+            } else {
+                dom.micTestLevelText.textContent = "Strong signal"
+            }
+
+            state.micTestMeterFrame = window.requestAnimationFrame(step)
+        }
+
+        step()
+    }
+
+    async function teardownMicrophoneTestMeter() {
+        if (state.micTestMeterFrame) {
+            window.cancelAnimationFrame(state.micTestMeterFrame)
+            state.micTestMeterFrame = 0
+        }
+
+        if (state.micTestSourceNode) {
+            state.micTestSourceNode.disconnect()
+            state.micTestSourceNode = null
+        }
+
+        state.micTestAnalyser = null
+
+        if (state.micTestAudioContext) {
+            await state.micTestAudioContext.close()
+            state.micTestAudioContext = null
+        }
+    }
+
+    async function finalizeMicrophoneTestCapture() {
+        const recorder = state.micTestRecorder
+        const mimeType = recorder && recorder.mimeType ? recorder.mimeType : "audio/webm"
+        const chunks = state.micTestChunks.slice()
+
+        state.micTestRecorder = null
+        state.micTestChunks = []
+        state.isMicTestActive = false
+        state.isMicTestStopping = false
+
+        if (state.micTestStream) {
+            state.micTestStream.getTracks().forEach((track) => track.stop())
+            state.micTestStream = null
+        }
+
+        await teardownMicrophoneTestMeter()
+
+        if (!state.isRecording) {
+            setFormDisabled(false)
+        }
+
+        if (chunks.length) {
+            const testBlob = new Blob(chunks, { type: mimeType })
+            if (testBlob.size > 0) {
+                clearMicrophoneTestSample()
+                state.micTestAudioUrl = URL.createObjectURL(testBlob)
+                dom.micTestPlayback.src = state.micTestAudioUrl
+                dom.micTestPlayback.hidden = false
+                dom.micTestPlayback.load()
+                setMicrophoneTestStatus("Test clip ready. Listen back and confirm that the selected microphone sounds correct.")
+                resetMicrophoneTestMeter("Ready")
+            } else {
+                setMicrophoneTestStatus("The microphone test finished, but no audio was captured. Try again and speak closer to the microphone.")
+                resetMicrophoneTestMeter("No signal")
+            }
+        } else {
+            setMicrophoneTestStatus("The microphone test finished, but no audio was captured. Try again.")
+            resetMicrophoneTestMeter("No signal")
+        }
+
+        refreshUi(true)
+    }
+
+    async function startMicrophoneTest() {
+        const blocker = getSupportBlocker() || getMicTestSupportBlocker()
+        if (blocker || state.isRecording || state.isMicTestActive || state.isMicTestStopping) {
+            refreshUi(true)
+            return
+        }
+
+        const formConfig = getFormConfig()
+        dom.micTestPlayback.pause()
+        setMicrophoneTestStatus(`Requesting microphone access for ${formConfig.deviceLabel}...`)
+
+        try {
+            const stream = await openMicrophone(formConfig.deviceId)
+            const recorderOptions = getMediaRecorderOptions()
+            const recorder = recorderOptions ? new MediaRecorder(stream, recorderOptions) : new MediaRecorder(stream)
+
+            clearMicrophoneTestSample()
+            state.micTestStream = stream
+            state.micTestRecorder = recorder
+            state.micTestChunks = []
+            state.isMicTestActive = true
+            state.isMicTestStopping = false
+
+            setFormDisabled(true)
+            await setupMicrophoneTestMeter(stream)
+
+            recorder.ondataavailable = function (event) {
+                if (event.data && event.data.size > 0) {
+                    state.micTestChunks.push(event.data)
+                }
+            }
+
+            recorder.onstop = function () {
+                finalizeMicrophoneTestCapture().catch((error) => {
+                    console.error(error)
+                    setMicrophoneTestStatus("The microphone test could not be finalized. Please try again.")
+                    refreshUi(true)
+                })
+            }
+
+            recorder.start()
+            setMicrophoneTestStatus(`Testing ${getSelectedMicrophoneLabel()}. Speak for a few seconds, then stop and listen back.`)
+            refreshUi(true)
+        } catch (error) {
+            if (state.micTestStream) {
+                state.micTestStream.getTracks().forEach((track) => track.stop())
+                state.micTestStream = null
+            }
+
+            await teardownMicrophoneTestMeter()
+            state.isMicTestActive = false
+            state.isMicTestStopping = false
+            setFormDisabled(false)
+
+            const errorMessage = error && error.name === "NotAllowedError"
+                ? "Microphone access was blocked. Allow the microphone and try again."
+                : "The microphone test could not start. Check browser permissions and device selection."
+            setMicrophoneTestStatus(errorMessage)
+            console.error(error)
+            refreshUi(true)
+        }
+    }
+
+    async function stopMicrophoneTest() {
+        if (!state.isMicTestActive || !state.micTestRecorder || state.isMicTestStopping) {
+            return
+        }
+
+        state.isMicTestStopping = true
+        setMicrophoneTestStatus("Stopping microphone test...")
+        refreshUi(true)
+
+        if (state.micTestRecorder.state === "inactive") {
+            await finalizeMicrophoneTestCapture()
+            return
+        }
+
+        state.micTestRecorder.stop()
     }
 
     function mergeFloatChunks(chunks, totalSamples) {
@@ -560,6 +842,12 @@
             return
         }
 
+        if (state.isMicTestActive || state.isMicTestStopping) {
+            setMessage("Stop the microphone test before starting the full recording.", "warning")
+            refreshUi(true)
+            return
+        }
+
         const formConfig = getFormConfig()
         if (!formConfig.participantCode) {
             setMessage("Enter a participant code before starting the recording.", "error")
@@ -567,6 +855,7 @@
             return
         }
 
+        dom.micTestPlayback.pause()
         setMessage("Requesting microphone access and preparing the recorder...", "info")
 
         try {
@@ -722,7 +1011,7 @@
     }
 
     function clearSession() {
-        if (state.isRecording || !state.sessionSegments.length) {
+        if (state.isRecording || state.isMicTestActive || state.isMicTestStopping || !state.sessionSegments.length) {
             return
         }
 
@@ -748,7 +1037,7 @@
 
         if (event.code === "Space") {
             event.preventDefault()
-            if (!state.isRecording) {
+            if (!state.isRecording && !state.isMicTestActive && !state.isMicTestStopping) {
                 startRecording()
             }
             return
@@ -776,9 +1065,26 @@
 
     function cleanupBeforeUnload() {
         state.sessionSegments.forEach((segment) => revokeSegmentUrls(segment))
+        clearMicrophoneTestSample()
 
         if (state.mediaStream) {
             state.mediaStream.getTracks().forEach((track) => track.stop())
+        }
+
+        if (state.micTestStream) {
+            state.micTestStream.getTracks().forEach((track) => track.stop())
+        }
+
+        if (state.micTestMeterFrame) {
+            window.cancelAnimationFrame(state.micTestMeterFrame)
+        }
+
+        if (state.micTestSourceNode) {
+            state.micTestSourceNode.disconnect()
+        }
+
+        if (state.micTestAudioContext) {
+            state.micTestAudioContext.close().catch(() => undefined)
         }
     }
 
@@ -786,16 +1092,34 @@
     dom.stopButton.addEventListener("click", stopRecording)
     dom.downloadZipButton.addEventListener("click", downloadZip)
     dom.clearSessionButton.addEventListener("click", clearSession)
+    dom.startMicTestButton.addEventListener("click", startMicrophoneTest)
+    dom.stopMicTestButton.addEventListener("click", stopMicrophoneTest)
     dom.refreshButton.addEventListener("click", async function () {
         try {
             setMessage("Refreshing the microphone list...", "info")
             await refreshMicrophones({ requestPermission: true })
+            if (!state.isMicTestActive && !state.isMicTestStopping) {
+                setMicrophoneTestStatus("The microphone list has been refreshed. Run the mic test if you want to verify the selected device.")
+                resetMicrophoneTestMeter("Waiting for input")
+            }
             setMessage("The microphone list has been refreshed.", "info")
         } catch (error) {
             console.error(error)
             setMessage("The microphone list could not be refreshed. Check browser permissions and try again.", "error")
+            setMicrophoneTestStatus("The microphone list could not be refreshed. Check browser permissions and try again.")
             refreshUi(true)
         }
+    })
+
+    dom.microphoneSelect.addEventListener("change", function () {
+        if (state.isRecording || state.isMicTestActive || state.isMicTestStopping) {
+            return
+        }
+
+        clearMicrophoneTestSample()
+        setMicrophoneTestStatus("Microphone selection updated. Run the mic test to verify the newly selected device.")
+        resetMicrophoneTestMeter("Waiting for input")
+        refreshUi(true)
     })
 
     dom.classButtons.forEach((button) => {
@@ -806,7 +1130,7 @@
 
     if (navigator.mediaDevices && typeof navigator.mediaDevices.addEventListener === "function") {
         navigator.mediaDevices.addEventListener("devicechange", function () {
-            if (!state.isRecording) {
+            if (!state.isRecording && !state.isMicTestActive && !state.isMicTestStopping) {
                 refreshMicrophones().catch((error) => console.warn(error))
             }
         })
@@ -816,6 +1140,8 @@
     window.addEventListener("beforeunload", cleanupBeforeUnload)
 
     renderSavedList()
+    setMicrophoneTestStatus("Record a short sample, stop, and listen back before starting the full session.")
+    resetMicrophoneTestMeter("Waiting for input")
     refreshUi(true)
 
     refreshMicrophones().catch((error) => {
