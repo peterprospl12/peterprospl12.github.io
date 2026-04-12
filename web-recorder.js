@@ -13,8 +13,6 @@
         refreshButton: document.getElementById("refresh-microphones"),
         startMicTestButton: document.getElementById("start-microphone-test"),
         stopMicTestButton: document.getElementById("stop-microphone-test"),
-        micTestLevelText: document.getElementById("microphone-test-level-text"),
-        micTestLevelFill: document.getElementById("microphone-test-level-fill"),
         micTestStatus: document.getElementById("microphone-test-status"),
         micTestPlayback: document.getElementById("microphone-test-playback"),
         startButton: document.getElementById("start-recording"),
@@ -62,10 +60,6 @@
         micTestRecorder: null,
         micTestChunks: [],
         micTestAudioUrl: "",
-        micTestAudioContext: null,
-        micTestAnalyser: null,
-        micTestSourceNode: null,
-        micTestMeterFrame: 0,
     }
 
     const formControls = [
@@ -167,11 +161,6 @@
         dom.micTestPlayback.load()
     }
 
-    function resetMicrophoneTestMeter(text) {
-        dom.micTestLevelFill.style.width = "0%"
-        dom.micTestLevelText.textContent = text
-    }
-
     function ensureSegmentUrls(segment) {
         if (!segment.wavUrl) {
             segment.wavUrl = URL.createObjectURL(segment.wavBlob)
@@ -255,7 +244,6 @@
 
         if (blocker && !state.isMicTestActive && !state.isMicTestStopping) {
             setMicrophoneTestStatus(blocker)
-            resetMicrophoneTestMeter("Unavailable")
         }
     }
 
@@ -418,76 +406,6 @@
         return {}
     }
 
-    async function setupMicrophoneTestMeter(stream) {
-        const AudioContextClass = window.AudioContext || window.webkitAudioContext
-        const audioContext = new AudioContextClass()
-        await audioContext.resume()
-
-        const analyser = audioContext.createAnalyser()
-        analyser.fftSize = 2048
-        analyser.smoothingTimeConstant = 0.85
-
-        const sourceNode = audioContext.createMediaStreamSource(stream)
-        sourceNode.connect(analyser)
-
-        state.micTestAudioContext = audioContext
-        state.micTestAnalyser = analyser
-        state.micTestSourceNode = sourceNode
-
-        const data = new Uint8Array(analyser.fftSize)
-        const step = function () {
-            if ((!state.isMicTestActive && !state.isMicTestStopping) || !state.micTestAnalyser) {
-                return
-            }
-
-            state.micTestAnalyser.getByteTimeDomainData(data)
-
-            let sumSquares = 0
-            for (let index = 0; index < data.length; index += 1) {
-                const centeredSample = (data[index] - 128) / 128
-                sumSquares += centeredSample * centeredSample
-            }
-
-            const rms = Math.sqrt(sumSquares / data.length)
-            const normalizedLevel = Math.min(1, rms * 7)
-            const fillWidth = normalizedLevel > 0 ? Math.max(4, normalizedLevel * 100) : 0
-            dom.micTestLevelFill.style.width = `${fillWidth}%`
-
-            if (normalizedLevel < 0.05) {
-                dom.micTestLevelText.textContent = "No signal"
-            } else if (normalizedLevel < 0.16) {
-                dom.micTestLevelText.textContent = "Low signal"
-            } else if (normalizedLevel < 0.32) {
-                dom.micTestLevelText.textContent = "Good signal"
-            } else {
-                dom.micTestLevelText.textContent = "Strong signal"
-            }
-
-            state.micTestMeterFrame = window.requestAnimationFrame(step)
-        }
-
-        step()
-    }
-
-    async function teardownMicrophoneTestMeter() {
-        if (state.micTestMeterFrame) {
-            window.cancelAnimationFrame(state.micTestMeterFrame)
-            state.micTestMeterFrame = 0
-        }
-
-        if (state.micTestSourceNode) {
-            state.micTestSourceNode.disconnect()
-            state.micTestSourceNode = null
-        }
-
-        state.micTestAnalyser = null
-
-        if (state.micTestAudioContext) {
-            await state.micTestAudioContext.close()
-            state.micTestAudioContext = null
-        }
-    }
-
     async function finalizeMicrophoneTestCapture() {
         const recorder = state.micTestRecorder
         const mimeType = recorder && recorder.mimeType ? recorder.mimeType : "audio/webm"
@@ -503,8 +421,6 @@
             state.micTestStream = null
         }
 
-        await teardownMicrophoneTestMeter()
-
         if (!state.isRecording) {
             setFormDisabled(false)
         }
@@ -518,14 +434,11 @@
                 dom.micTestPlayback.hidden = false
                 dom.micTestPlayback.load()
                 setMicrophoneTestStatus("Test clip ready. Listen back and confirm that the selected microphone sounds correct.")
-                resetMicrophoneTestMeter("Ready")
             } else {
                 setMicrophoneTestStatus("The microphone test finished, but no audio was captured. Try again and speak closer to the microphone.")
-                resetMicrophoneTestMeter("No signal")
             }
         } else {
             setMicrophoneTestStatus("The microphone test finished, but no audio was captured. Try again.")
-            resetMicrophoneTestMeter("No signal")
         }
 
         refreshUi(true)
@@ -555,7 +468,6 @@
             state.isMicTestStopping = false
 
             setFormDisabled(true)
-            await setupMicrophoneTestMeter(stream)
 
             recorder.ondataavailable = function (event) {
                 if (event.data && event.data.size > 0) {
@@ -580,7 +492,6 @@
                 state.micTestStream = null
             }
 
-            await teardownMicrophoneTestMeter()
             state.isMicTestActive = false
             state.isMicTestStopping = false
             setFormDisabled(false)
@@ -1074,18 +985,6 @@
         if (state.micTestStream) {
             state.micTestStream.getTracks().forEach((track) => track.stop())
         }
-
-        if (state.micTestMeterFrame) {
-            window.cancelAnimationFrame(state.micTestMeterFrame)
-        }
-
-        if (state.micTestSourceNode) {
-            state.micTestSourceNode.disconnect()
-        }
-
-        if (state.micTestAudioContext) {
-            state.micTestAudioContext.close().catch(() => undefined)
-        }
     }
 
     dom.startButton.addEventListener("click", startRecording)
@@ -1100,7 +999,6 @@
             await refreshMicrophones({ requestPermission: true })
             if (!state.isMicTestActive && !state.isMicTestStopping) {
                 setMicrophoneTestStatus("The microphone list has been refreshed. Run the mic test if you want to verify the selected device.")
-                resetMicrophoneTestMeter("Waiting for input")
             }
             setMessage("The microphone list has been refreshed.", "info")
         } catch (error) {
@@ -1118,7 +1016,6 @@
 
         clearMicrophoneTestSample()
         setMicrophoneTestStatus("Microphone selection updated. Run the mic test to verify the newly selected device.")
-        resetMicrophoneTestMeter("Waiting for input")
         refreshUi(true)
     })
 
@@ -1141,7 +1038,6 @@
 
     renderSavedList()
     setMicrophoneTestStatus("Record a short sample, stop, and listen back before starting the full session.")
-    resetMicrophoneTestMeter("Waiting for input")
     refreshUi(true)
 
     refreshMicrophones().catch((error) => {
