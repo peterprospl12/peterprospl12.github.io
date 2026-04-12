@@ -543,6 +543,11 @@
             color: #8e3826;
         }
 
+        .status-pill.paused {
+            background: rgba(213, 148, 53, 0.18);
+            color: #7a5417;
+        }
+
         .status-pill.blocked {
             background: rgba(91, 109, 117, 0.15);
             color: #34474f;
@@ -915,8 +920,9 @@
             <div class="callout" style="margin-top: 18px;">
                 <strong>Practical recommendation</strong>
                 <p>
-                    Keep recording continuously until the progress bar reaches 10 minutes. Stopping only after complete
-                    minute boundaries makes the resulting dataset cleaner and easier to review.
+                    Keep recording continuously until the progress bar reaches 10 minutes. If you need a break, use
+                    Pause and then Resume Recording to continue the same segment. Downloading the ZIP will close any
+                    unfinished segment.
                 </p>
             </div>
         </section>
@@ -1142,7 +1148,7 @@
 
                     <div class="recorder-actions">
                         <button class="control-btn" id="start-recording" type="button">Start Recording</button>
-                        <button class="control-btn muted" id="stop-recording" type="button" disabled>Stop</button>
+                        <button class="control-btn muted" id="stop-recording" type="button" disabled>Pause</button>
                         <button class="control-btn secondary" id="download-zip" type="button" disabled>Download
                             ZIP</button>
                         <button class="ghost-btn" id="clear-session" type="button" disabled>Clear Session</button>
@@ -1167,19 +1173,20 @@
                     </div>
 
                     <p class="shortcut-note">
-                        Shortcuts: <span class="kbd">Space</span> start, <span class="kbd">S</span> stop,
+                        Shortcuts: <span class="kbd">Space</span> start or resume, <span class="kbd">S</span>
+                        pause,
                         <span class="kbd">W</span> inhale, <span class="kbd">E</span> exhale,
                         <span class="kbd">R</span> silence.
                     </p>
 
                     <div class="message-box" id="recorder-message" data-tone="info">
-                        This recorder runs entirely in the browser. When the session is complete, download the ZIP and
-                        submit it with the upload form.
+                        This recorder runs entirely in the browser. Pause if you need a break, then resume the same
+                        segment or download the ZIP when the session is complete.
                     </div>
 
                     <div class="saved-list" id="saved-list">
-                        <div class="saved-empty">No saved segments yet. WAV and CSV files will appear here after the
-                            first completed save.</div>
+                        <div class="saved-empty">No saved segments yet. Completed segments will appear here and be
+                            included in the ZIP export.</div>
                     </div>
                 </div>
             </div>

@@ -42,6 +42,7 @@
         sourceNode: null,
         processorNode: null,
         isRecording: false,
+        isPaused: false,
         currentLabel: DEFAULT_LABEL,
         inputSampleRate: TARGET_SAMPLE_RATE,
         targetInputSamples: TARGET_SAMPLE_RATE * SEGMENT_DURATION_SECONDS,
@@ -161,44 +162,19 @@
         dom.micTestPlayback.load()
     }
 
-    function ensureSegmentUrls(segment) {
-        if (!segment.wavUrl) {
-            segment.wavUrl = URL.createObjectURL(segment.wavBlob)
-        }
-
-        if (!segment.csvUrl) {
-            const csvBlob = new Blob([segment.csvText], { type: "text/csv;charset=utf-8" })
-            segment.csvUrl = URL.createObjectURL(csvBlob)
-        }
-    }
-
-    function revokeSegmentUrls(segment) {
-        if (segment.wavUrl) {
-            URL.revokeObjectURL(segment.wavUrl)
-            segment.wavUrl = ""
-        }
-
-        if (segment.csvUrl) {
-            URL.revokeObjectURL(segment.csvUrl)
-            segment.csvUrl = ""
-        }
-    }
-
     function renderSavedList() {
         dom.savedList.innerHTML = ""
 
         if (!state.sessionSegments.length) {
             const emptyState = document.createElement("div")
             emptyState.className = "saved-empty"
-            emptyState.textContent = "No saved segments yet. WAV and CSV files will appear here after the first completed save."
+            emptyState.textContent = "No saved segments yet. Completed segments will appear here and be included in the ZIP export."
             dom.savedList.append(emptyState)
             return
         }
 
         const segmentsToRender = [...state.sessionSegments].reverse()
         segmentsToRender.forEach((segment) => {
-            ensureSegmentUrls(segment)
-
             const item = document.createElement("div")
             item.className = "saved-item"
 
@@ -216,14 +192,6 @@
             `
             item.append(meta)
 
-            const links = document.createElement("div")
-            links.className = "saved-links"
-            links.innerHTML = `
-                <a class="saved-link" href="${segment.wavUrl}" download="${segment.wavName}">Download WAV</a>
-                <a class="saved-link" href="${segment.csvUrl}" download="${segment.csvName}">Download CSV</a>
-            `
-            item.append(links)
-
             dom.savedList.append(item)
         })
     }
@@ -236,9 +204,13 @@
         return state.segmentInputSamples / state.inputSampleRate
     }
 
+    function hasPendingSegment() {
+        return state.segmentInputSamples > 0
+    }
+
     function updateMicrophoneTestUi() {
         const blocker = getSupportBlocker() || getMicTestSupportBlocker()
-        dom.startMicTestButton.disabled = Boolean(blocker) || state.isRecording || state.isMicTestActive || state.isMicTestStopping
+        dom.startMicTestButton.disabled = Boolean(blocker) || state.isRecording || state.isPaused || state.isMicTestActive || state.isMicTestStopping || state.downloadInProgress
         dom.stopMicTestButton.disabled = !state.isMicTestActive || state.isMicTestStopping
         dom.micTestPlayback.hidden = !state.micTestAudioUrl
 
@@ -250,13 +222,17 @@
     function updateStatus() {
         const blocker = getSupportBlocker()
         const currentSegmentSeconds = getCurrentSegmentSeconds()
+        const hasOpenSegment = state.isRecording || state.isPaused
+        const hasExportableSession = state.sessionSegments.length > 0 || hasPendingSegment()
+        const hasClearableSession = hasExportableSession || state.isPaused
         const totalVisibleSeconds = Math.min(
             STUDY_TARGET_SECONDS,
-            state.totalSavedSeconds + (state.isRecording ? currentSegmentSeconds : 0)
+            state.totalSavedSeconds + (hasOpenSegment ? currentSegmentSeconds : 0)
         )
         const savedSegmentsLabel = state.sessionSegments.length === 1 ? "1 saved" : `${state.sessionSegments.length} saved`
 
-        dom.currentClassDisplay.textContent = state.isRecording ? state.currentLabel.toUpperCase() : "READY"
+        dom.startButton.textContent = state.isPaused ? "Resume Recording" : "Start Recording"
+        dom.currentClassDisplay.textContent = hasOpenSegment ? state.currentLabel.toUpperCase() : "READY"
         dom.savedCountDisplay.textContent = `${savedSegmentsLabel} · ${formatDuration(state.totalSavedSeconds)}`
 
         dom.segmentProgressText.textContent = `${formatDuration(currentSegmentSeconds)} / ${formatDuration(SEGMENT_DURATION_SECONDS)}`
@@ -265,10 +241,10 @@
         dom.sessionProgressText.textContent = `${formatDuration(totalVisibleSeconds)} / ${formatDuration(STUDY_TARGET_SECONDS)}`
         dom.sessionProgressFill.style.width = `${Math.min(100, (totalVisibleSeconds / STUDY_TARGET_SECONDS) * 100)}%`
 
-        dom.startButton.disabled = Boolean(blocker) || state.isRecording || state.isMicTestActive || state.isMicTestStopping
-        dom.stopButton.disabled = !state.isRecording
-        dom.downloadZipButton.disabled = state.isRecording || state.isMicTestActive || state.isMicTestStopping || !state.sessionSegments.length || !window.JSZip || state.downloadInProgress
-        dom.clearSessionButton.disabled = state.isRecording || state.isMicTestActive || state.isMicTestStopping || !state.sessionSegments.length
+        dom.startButton.disabled = Boolean(blocker) || state.isRecording || state.isMicTestActive || state.isMicTestStopping || state.downloadInProgress
+        dom.stopButton.disabled = !state.isRecording || state.downloadInProgress
+        dom.downloadZipButton.disabled = state.isRecording || state.isMicTestActive || state.isMicTestStopping || !hasExportableSession || !window.JSZip || state.downloadInProgress
+        dom.clearSessionButton.disabled = state.isRecording || state.isMicTestActive || state.isMicTestStopping || state.downloadInProgress || !hasClearableSession
 
         dom.classButtons.forEach((button) => {
             button.disabled = !state.isRecording
@@ -279,13 +255,17 @@
             dom.statusPill.className = "status-pill blocked"
             dom.statusPill.textContent = "Blocked"
             dom.statusText.textContent = blocker
-            if (!state.isRecording && !state.isMicTestActive && !state.isMicTestStopping) {
+            if (!state.isRecording && !state.isPaused && !state.isMicTestActive && !state.isMicTestStopping) {
                 setMessage(blocker, "error")
             }
         } else if (state.isRecording && state.activeConfig) {
             dom.statusPill.className = "status-pill live"
             dom.statusPill.textContent = "Recording"
             dom.statusText.textContent = `NOSE ONLY • ${formatDuration(SEGMENT_DURATION_SECONDS)} segments • ${state.activeConfig.deviceLabel}`
+        } else if (state.isPaused && state.activeConfig) {
+            dom.statusPill.className = "status-pill paused"
+            dom.statusPill.textContent = "Paused"
+            dom.statusText.textContent = `NOSE ONLY • Paused at ${formatDuration(currentSegmentSeconds)} • ${state.activeConfig.deviceLabel}`
         } else if (state.isMicTestActive || state.isMicTestStopping) {
             dom.statusPill.className = "status-pill live"
             dom.statusPill.textContent = "Mic Check"
@@ -446,7 +426,7 @@
 
     async function startMicrophoneTest() {
         const blocker = getSupportBlocker() || getMicTestSupportBlocker()
-        if (blocker || state.isRecording || state.isMicTestActive || state.isMicTestStopping) {
+        if (blocker || state.isRecording || state.isPaused || state.isMicTestActive || state.isMicTestStopping || state.downloadInProgress) {
             refreshUi(true)
             return
         }
@@ -651,6 +631,24 @@
         state.segmentEvents = [{ label: state.currentLabel, sample: 0 }]
     }
 
+    async function closeRecordingSession(options) {
+        const settings = options || {}
+
+        if (settings.keepPendingSegment && hasPendingSegment()) {
+            finalizeCurrentSegment(state.segmentInputSamples < state.targetInputSamples)
+        }
+
+        await teardownCapture()
+
+        state.isRecording = false
+        state.isPaused = false
+        state.activeConfig = null
+        state.currentLabel = DEFAULT_LABEL
+        resetSegmentState()
+        setFormDisabled(false)
+        refreshUi(true)
+    }
+
     function finalizeCurrentSegment(partial) {
         if (!state.segmentInputSamples) {
             return
@@ -676,8 +674,6 @@
             csvName: `${basename}.csv`,
             wavBlob,
             csvText: csvData.text,
-            wavUrl: "",
-            csvUrl: "",
             durationSeconds: resampledSamples.length / TARGET_SAMPLE_RATE,
             partial,
             labelRowCount: csvData.labelRowCount,
@@ -759,6 +755,27 @@
             return
         }
 
+        if (state.isPaused) {
+            if (!state.audioContext) {
+                setMessage("The paused session is no longer available. Clear the session and start again.", "error")
+                refreshUi(true)
+                return
+            }
+
+            try {
+                await state.audioContext.resume()
+                state.isPaused = false
+                state.isRecording = true
+                setMessage("Recording resumed. The current segment continues where it was paused.", "info")
+            } catch (error) {
+                console.error(error)
+                setMessage("The recorder could not resume. Clear the session and start again.", "error")
+            }
+
+            refreshUi(true)
+            return
+        }
+
         const formConfig = getFormConfig()
         if (!formConfig.participantCode) {
             setMessage("Enter a participant code before starting the recording.", "error")
@@ -784,6 +801,7 @@
                 deviceLabel: getSelectedMicrophoneLabel(),
             }
             state.isRecording = true
+            state.isPaused = false
             state.currentLabel = DEFAULT_LABEL
 
             resetSegmentState()
@@ -795,7 +813,7 @@
             state.processorNode.connect(audioContext.destination)
 
             setFormDisabled(true)
-            setMessage("Recording is live. Use the buttons or W, E, and R to label each breathing phase.", "info")
+            setMessage("Recording is live. Use Pause if you need a break, and W, E, or R to label each breathing phase.", "info")
 
             try {
                 await refreshMicrophones()
@@ -840,19 +858,22 @@
         }
 
         state.isRecording = false
-        setFormDisabled(false)
+        state.isPaused = true
+        setMessage("Pausing the recording...", "info")
+        refreshUi(true)
 
-        const hasPartialSegment = state.segmentInputSamples > 0
-
-        await teardownCapture()
-
-        if (hasPartialSegment) {
-            finalizeCurrentSegment(state.segmentInputSamples < state.targetInputSamples)
+        try {
+            if (state.audioContext && state.audioContext.state !== "suspended") {
+                await state.audioContext.suspend()
+            }
+            setMessage("Recording paused. Click Resume Recording to continue this segment, or Download ZIP to finish the session.", "info")
+        } catch (error) {
+            console.error(error)
+            state.isRecording = true
+            state.isPaused = false
+            setMessage("The recorder could not be paused. Please try again.", "error")
         }
 
-        state.activeConfig = null
-        resetSegmentState()
-        setMessage("Recording stopped. You can download the ZIP or start another session.", "info")
         refreshUi(true)
     }
 
@@ -868,7 +889,7 @@
     }
 
     async function downloadZip() {
-        if (!state.sessionSegments.length || state.downloadInProgress) {
+        if ((!state.sessionSegments.length && !hasPendingSegment()) || state.downloadInProgress || state.isRecording) {
             return
         }
 
@@ -883,6 +904,16 @@
         refreshUi(true)
 
         try {
+            if (state.isPaused) {
+                await closeRecordingSession({ keepPendingSegment: true })
+            }
+
+            if (!state.sessionSegments.length) {
+                setMessage("There are no saved segments to export yet.", "warning")
+                refreshUi(true)
+                return
+            }
+
             const zip = new window.JSZip()
 
             state.sessionSegments.forEach((segment) => {
@@ -922,7 +953,8 @@
     }
 
     function clearSession() {
-        if (state.isRecording || state.isMicTestActive || state.isMicTestStopping || !state.sessionSegments.length) {
+        const hasClearableSession = state.sessionSegments.length || hasPendingSegment() || state.isPaused
+        if (state.isRecording || state.isMicTestActive || state.isMicTestStopping || state.downloadInProgress || !hasClearableSession) {
             return
         }
 
@@ -931,13 +963,18 @@
             return
         }
 
-        state.sessionSegments.forEach((segment) => revokeSegmentUrls(segment))
-        state.sessionSegments = []
-        state.totalSavedSeconds = 0
-        state.segmentSequence = 0
-        renderSavedList()
-        setMessage("The current session has been cleared.", "info")
-        refreshUi(true)
+        closeRecordingSession({ keepPendingSegment: false }).then(() => {
+            state.sessionSegments = []
+            state.totalSavedSeconds = 0
+            state.segmentSequence = 0
+            renderSavedList()
+            setMessage("The current session has been cleared.", "info")
+            refreshUi(true)
+        }).catch((error) => {
+            console.error(error)
+            setMessage("The current session could not be cleared. Please try again.", "error")
+            refreshUi(true)
+        })
     }
 
     function handleKeydown(event) {
@@ -975,7 +1012,6 @@
     }
 
     function cleanupBeforeUnload() {
-        state.sessionSegments.forEach((segment) => revokeSegmentUrls(segment))
         clearMicrophoneTestSample()
 
         if (state.mediaStream) {
@@ -1010,7 +1046,7 @@
     })
 
     dom.microphoneSelect.addEventListener("change", function () {
-        if (state.isRecording || state.isMicTestActive || state.isMicTestStopping) {
+        if (state.isRecording || state.isPaused || state.isMicTestActive || state.isMicTestStopping) {
             return
         }
 
@@ -1027,7 +1063,7 @@
 
     if (navigator.mediaDevices && typeof navigator.mediaDevices.addEventListener === "function") {
         navigator.mediaDevices.addEventListener("devicechange", function () {
-            if (!state.isRecording && !state.isMicTestActive && !state.isMicTestStopping) {
+            if (!state.isRecording && !state.isPaused && !state.isMicTestActive && !state.isMicTestStopping) {
                 refreshMicrophones().catch((error) => console.warn(error))
             }
         })
